@@ -1,0 +1,70 @@
+name: Pre-Breakout Scanner v2
+
+on:
+  schedule:
+    # Every 15 minutes — GitHub may delay a few minutes under load (normal)
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: "Set to 'true' to enable verbose logging"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write   # Required to commit updated state/known_symbols.json
+
+jobs:
+  scan:
+    name: "Run Pre-Breakout Scanner"
+    runs-on: ubuntu-latest
+    timeout-minutes: 13   # Safety cap — each run should finish well under 12 min
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1   # Only need latest commit
+
+      # ── 2. Python setup ──────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"     # Cache pip dependencies between runs
+
+      # ── 3. Install dependencies ──────────────────────────────────
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ── 4. Run scanner ───────────────────────────────────────────
+      - name: Run scanner
+        id: scanner
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEBUG:              ${{ github.event.inputs.debug || 'false' }}
+        run: |
+          python scanner.py 2>&1 | tee scanner_output.log
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      # ── 5. Upload log as artifact (7-day retention) ──────────────
+      - name: Upload scan log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-log-${{ github.run_number }}
+          path: scanner_output.log
+          retention-days: 7
+
+      # ── 6. Commit updated state ──────────────────────────────────
+      - name: Commit state update
+        run: |
+          git config user.name  "pre-breakout-bot"
+          git config user.email "actions@github.com"
+          git add state/known_symbols.json
+          git diff --quiet --cached || git commit -m "chore: update state [skip ci]"
+          git push
