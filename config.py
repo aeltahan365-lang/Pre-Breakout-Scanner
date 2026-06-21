@@ -25,6 +25,17 @@ VOLUME_SPIKE_RATIO    = 3.5        # current / avg must exceed this
 MIN_QUOTE_VOLUME_24H  = 150_000    # $USD — skip low-liquidity pairs
 RATE_LIMIT_SLEEP      = 0.15       # seconds between API calls
 
+# ── Volume Direction (separates real buying volume from selling/
+#    distribution volume — a high-volume candle that closes near its
+#    low, or where most trades were sell-side, is NOT a breakout) ──
+MIN_CLV                  = 0.55    # close must sit in upper 55% of candle range
+MIN_TAKER_BUY_RATIO      = 0.55    # ≥55% of recent traded volume must be buyer-initiated
+USE_CRYPTOCOM_VALIDATION = True    # also cross-check buy ratio on Crypto.com when the pair is listed there (bonus confirmation, never a hard block — most KuCoin small-caps aren't listed on Crypto.com)
+
+# ── Order Book Imbalance (reject breakouts facing a sell wall) ───
+ORDER_BOOK_DEPTH_PCT      = 0.02   # measure depth within ±2% of best bid/ask
+MIN_ORDER_BOOK_BID_RATIO  = 0.40   # below this, sellers dominate near price — likely rejection
+
 # ── Indicator Periods ────────────────────────────────────────────
 RSI_PERIOD         = 14
 MACD_FAST          = 12

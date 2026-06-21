@@ -74,7 +74,10 @@ def load_state() -> dict:
                 return json.load(f)
         except Exception:
             pass
-    return {"known_symbols": [], "last_run": None, "alert_history": {}}
+    return {
+        "known_symbols": [], "last_run": None, "alert_history": {},
+        "pending_outcomes": [], "stats": {"wins": 0, "losses": 0, "expired": 0},
+    }
 
 
 def save_state(state: dict):
@@ -263,11 +266,72 @@ def calc_taker_buy_ratio(exchange, symbol: str, limit: int = 150) -> float | Non
         return None
 
 
+def validate_buy_ratio_cryptocom(cryptocom, symbol: str, limit: int = 150) -> float | None:
+    """
+    Cross-checks the taker buy/sell ratio on Crypto.com Exchange, when the
+    pair happens to be listed there (ccxt symbol 'TOKEN/USDT' -> Crypto.com
+    market 'TOKEN/USDT' — ccxt normalizes the format automatically).
+
+    This is a BONUS confirmation, not a hard requirement: many KuCoin
+    small/mid-cap listings (e.g. fresh pre-breakout candidates) simply
+    aren't listed on Crypto.com, so a None here just means "no extra
+    data available," not "rejected."
+    """
+    if cryptocom is None:
+        return None
+    try:
+        if symbol not in cryptocom.markets:
+            return None
+        return calc_taker_buy_ratio(cryptocom, symbol, limit=limit)
+    except Exception:
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────
+# ORDER BOOK IMBALANCE (is there a sell wall sitting above price?)
+# ─────────────────────────────────────────────────────────────────
+
+def calc_order_book_imbalance(exchange, symbol: str,
+                               depth_pct: float = None, limit: int = 50) -> dict | None:
+    """
+    Looks at live order book depth within `depth_pct` of the best
+    bid/ask (default 2%) and measures whether buyers or sellers
+    dominate right around the current price.
+
+    Returns dict: {bid_depth, ask_depth, bid_ratio} or None if unavailable.
+      bid_ratio -> 1.0  : buyers dominate, thin resistance above price
+      bid_ratio -> 0.0  : a sell wall sits just above price —
+                          a breakout here is likely to get rejected
+                          even if the candle/trade data looks bullish
+    """
+    depth_pct = depth_pct if depth_pct is not None else cfg.ORDER_BOOK_DEPTH_PCT
+    try:
+        ob = exchange.fetch_order_book(symbol, limit=limit)
+        bids, asks = ob.get("bids") or [], ob.get("asks") or []
+        if not bids or not asks:
+            return None
+        best_bid, best_ask = bids[0][0], asks[0][0]
+        bid_floor   = best_bid * (1 - depth_pct)
+        ask_ceiling = best_ask * (1 + depth_pct)
+        bid_depth = sum(price * qty for price, qty in bids if price >= bid_floor)
+        ask_depth = sum(price * qty for price, qty in asks if price <= ask_ceiling)
+        total = bid_depth + ask_depth
+        if total <= 0:
+            return None
+        return {
+            "bid_depth": round(bid_depth, 2),
+            "ask_depth": round(ask_depth, 2),
+            "bid_ratio": round(bid_depth / total, 3),
+        }
+    except Exception:
+        return None
+
+
 # ─────────────────────────────────────────────────────────────────
 # SINGLE SYMBOL ANALYSIS
 # ─────────────────────────────────────────────────────────────────
 
-def analyze_symbol(exchange, symbol: str) -> dict | None:
+def analyze_symbol(exchange, symbol: str, cryptocom=None) -> dict | None:
     """
     Full analysis pipeline for one symbol.
     Returns alert dict if signal qualifies, else None.
@@ -305,6 +369,19 @@ def analyze_symbol(exchange, symbol: str) -> dict | None:
         if buy_ratio is not None and buy_ratio < cfg.MIN_TAKER_BUY_RATIO:
             log(f"  🚫 {symbol} vol={vol_ratio}x but taker buy_ratio={buy_ratio} — "
                 f"sell-dominated. Skipped.")
+            return None
+
+        # ── BONUS: cross-check buy ratio on Crypto.com when listed ──
+        cc_buy_ratio = None
+        if cfg.USE_CRYPTOCOM_VALIDATION:
+            cc_buy_ratio = validate_buy_ratio_cryptocom(cryptocom, symbol)
+
+        # ── GATE: order book — reject if a sell wall sits above price ──
+        ob = calc_order_book_imbalance(exchange, symbol)
+        if ob is not None and ob["bid_ratio"] < cfg.MIN_ORDER_BOOK_BID_RATIO:
+            log(f"  🚫 {symbol} sell wall detected (bid_ratio={ob['bid_ratio']}, "
+                f"ask_depth=${ob['ask_depth']:,.0f} vs bid_depth=${ob['bid_depth']:,.0f}) "
+                f"— breakout likely to get rejected. Skipped.")
             return None
 
         # ── All indicators ──
@@ -360,6 +437,13 @@ def analyze_symbol(exchange, symbol: str) -> dict | None:
             buy_str = f"Buy ratio={buy_ratio}" if buy_ratio is not None else "Buy ratio=n/a"
             reasons.append(f"✅ Volume confirmed buy-side ({clv_str} | {buy_str})")
 
+        if cc_buy_ratio is not None:
+            tag = "✅" if cc_buy_ratio >= cfg.MIN_TAKER_BUY_RATIO else "⚠️"
+            reasons.append(f"{tag} Crypto.com cross-check: buy ratio={cc_buy_ratio}")
+
+        if ob is not None:
+            reasons.append(f"✅ Order book clear (bid_ratio={ob['bid_ratio']}, ±{int(cfg.ORDER_BOOK_DEPTH_PCT*100)}% depth)")
+
         if score < cfg.SCORE_THRESHOLD:
             return None
 
@@ -393,6 +477,98 @@ def analyze_symbol(exchange, symbol: str) -> dict | None:
 
 
 # ─────────────────────────────────────────────────────────────────
+# OUTCOME TRACKING — did past alerts actually work?
+# ─────────────────────────────────────────────────────────────────
+# This is the foundation for any future, data-driven tuning (rebalancing
+# indicator weights, adding ML, adjusting thresholds). Without this, any
+# change to the scoring logic is a guess. With it, after a few weeks you
+# have real win/loss numbers per setup.
+
+OUTCOME_EXPIRY_HOURS = 48   # stop tracking a signal if neither SL nor TP hit within this window
+
+
+def evaluate_outcome(exchange, pending: dict) -> str:
+    """
+    Checks 15m candles since the alert was sent to see whether price has
+    touched the Stop Loss, Take Profit 1, or Take Profit 2 level.
+
+    Returns one of: 'tp2_hit', 'tp1_hit', 'sl_hit', 'open', 'error'.
+    If SL and a TP are both touched within the same 15m candle, SL wins
+    (conservative — we can't know the intra-candle order, so we assume
+    the worst case).
+    """
+    symbol = pending["symbol"]
+    sl, tp1, tp2 = pending.get("sl"), pending.get("tp1"), pending.get("tp2")
+    if not sl or not tp1:
+        return "error"
+    try:
+        since_ms = int(datetime.fromisoformat(pending["alert_time"]).timestamp() * 1000)
+        raw = exchange.fetch_ohlcv(symbol, timeframe="15m", since=since_ms, limit=200)
+        if not raw:
+            return "open"
+        for _, _, h, l, _, _ in raw:
+            hit_sl  = l <= sl
+            hit_tp2 = tp2 is not None and h >= tp2
+            hit_tp1 = h >= tp1
+            if hit_sl:
+                return "sl_hit"
+            if hit_tp2:
+                return "tp2_hit"
+            if hit_tp1:
+                return "tp1_hit"
+        return "open"
+    except Exception as e:
+        log(f"  ⚠️  outcome check failed for {symbol}: {e}")
+        return "error"
+
+
+def process_pending_outcomes(exchange, state: dict) -> list:
+    """
+    Resolves any alerts sent in previous cycles: checks if SL/TP1/TP2 was
+    hit, updates running win/loss stats, and returns the list of alerts
+    still open (to keep tracking next cycle).
+    """
+    pending = state.get("pending_outcomes", [])
+    stats   = state.setdefault("stats", {"wins": 0, "losses": 0, "expired": 0})
+    still_open = []
+    resolved   = []
+
+    for p in pending:
+        age_hours = (datetime.now(timezone.utc) - datetime.fromisoformat(p["alert_time"])).total_seconds() / 3600
+        outcome = evaluate_outcome(exchange, p)
+
+        if outcome == "sl_hit":
+            stats["losses"] += 1
+            resolved.append(f"❌ {p['symbol']}: SL hit (score {p['score']})")
+        elif outcome in ("tp1_hit", "tp2_hit"):
+            stats["wins"] += 1
+            label = "TP2" if outcome == "tp2_hit" else "TP1"
+            resolved.append(f"✅ {p['symbol']}: {label} hit (score {p['score']})")
+        elif outcome == "open":
+            if age_hours < OUTCOME_EXPIRY_HOURS:
+                still_open.append(p)
+            else:
+                stats["expired"] += 1
+                resolved.append(f"⌛ {p['symbol']}: expired, no level hit (score {p['score']})")
+        else:  # 'error' — retry next cycle, but don't track forever
+            if age_hours < OUTCOME_EXPIRY_HOURS:
+                still_open.append(p)
+
+    if resolved:
+        total = stats["wins"] + stats["losses"]
+        win_rate = f"{(stats['wins'] / total * 100):.0f}%" if total else "n/a"
+        msg = (
+            "📊 <b>Signal Outcomes</b>\n\n" + "\n".join(resolved) +
+            f"\n\n<i>Running stats — Wins: {stats['wins']} | Losses: {stats['losses']} | "
+            f"Win rate: {win_rate}</i>"
+        )
+        send_telegram(msg, silent=True)
+        log(f"📊 Resolved {len(resolved)} alert(s). Running: {stats}")
+
+    return still_open
+
+
+# ─────────────────────────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────────────────────────
 
@@ -409,6 +585,16 @@ def main():
         except Exception as e:
             log(f"⚠️  Binance init failed: {e} — cross-validation disabled")
             binance = None
+
+    cryptocom = None
+    if cfg.USE_CRYPTOCOM_VALIDATION:
+        try:
+            cryptocom = ccxt.cryptocom({"enableRateLimit": True})
+            cryptocom.load_markets()
+            log(f"📡 Crypto.com connected — {len(cryptocom.markets)} markets (bonus buy-ratio cross-check)")
+        except Exception as e:
+            log(f"⚠️  Crypto.com init failed: {e} — buy-ratio cross-check disabled")
+            cryptocom = None
 
     try:
         markets = kucoin.load_markets()
@@ -430,6 +616,9 @@ def main():
     known_symbols  = set(state.get("known_symbols", []))
     alert_history  = state.get("alert_history", {})
     is_first_run   = len(known_symbols) == 0
+
+    # ── Resolve outcomes of previously sent alerts (SL/TP1/TP2 hit?) ──
+    state["pending_outcomes"] = process_pending_outcomes(kucoin, state)
 
     # ── BTC context (skip altcoin longs in BTC bear) ──
     btc_ctx = get_btc_context(kucoin)
@@ -469,7 +658,7 @@ def main():
             skipped_cooldown += 1
             continue
 
-        result = analyze_symbol(kucoin, symbol)
+        result = analyze_symbol(kucoin, symbol, cryptocom)
         checked += 1
 
         if result is None:
@@ -505,6 +694,15 @@ def main():
         msg = format_alert(a)
         send_telegram(msg)
         alert_history[a["symbol"]] = datetime.now(timezone.utc).isoformat()
+        state.setdefault("pending_outcomes", []).append({
+            "symbol":     a["symbol"],
+            "alert_time": datetime.now(timezone.utc).isoformat(),
+            "score":      a["score"],
+            "entry":      a["price"],
+            "sl":         a["sl"],
+            "tp1":        a["tp1"],
+            "tp2":        a["tp2"],
+        })
         sent += 1
         time.sleep(1)   # small delay between Telegram messages
 
