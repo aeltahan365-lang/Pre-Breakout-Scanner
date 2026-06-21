@@ -86,6 +86,29 @@ def calc_volume_explosion(candles: list) -> tuple:
 
 
 # ═══════════════════════════════════════════════════════════════════
+# CLOSE LOCATION VALUE (volume direction confirmation — VSA-style)
+# ═══════════════════════════════════════════════════════════════════
+
+def calc_close_location_value(candles: list) -> float | None:
+    """
+    CLV (Close Location Value) for the most recent candle.
+    Tells you WHERE in the candle's range the close happened —
+    this is what separates "volume on buying" from "volume on selling".
+
+      1.0 = closed at the high  -> strong buying pressure absorbed the volume
+      0.5 = closed mid-range    -> indecisive / two-sided volume
+      0.0 = closed at the low   -> strong selling pressure, volume was distribution
+
+    Returns None if the candle has zero range (high == low).
+    """
+    c   = candles[-1]
+    rng = c["high"] - c["low"]
+    if rng <= 0:
+        return None
+    return round((c["close"] - c["low"]) / rng, 3)
+
+
+# ═══════════════════════════════════════════════════════════════════
 # RSI
 # ═══════════════════════════════════════════════════════════════════
 
