@@ -28,6 +28,7 @@ import requests
 import config as cfg
 from indicators import (
     calc_volume_explosion,
+    calc_close_location_value,
     calc_rsi,
     calc_macd,
     calc_bollinger,
@@ -235,6 +236,34 @@ def validate_on_binance(binance, symbol: str) -> bool:
 
 
 # ─────────────────────────────────────────────────────────────────
+# VOLUME DIRECTION (taker buy/sell classification — separates real
+# buying volume from selling/distribution volume)
+# ─────────────────────────────────────────────────────────────────
+
+def calc_taker_buy_ratio(exchange, symbol: str, limit: int = 150) -> float | None:
+    """
+    Pulls recent public trades and classifies each as buyer-initiated
+    or seller-initiated (the exchange tags this as trade['side']).
+
+    Returns the fraction of traded volume that was buyer-initiated (0-1).
+    A high-volume candle dominated by 'sell' trades is distribution,
+    not a real breakout — even if price ticked up slightly.
+
+    Returns None if trades are unavailable (not a disqualifier).
+    """
+    try:
+        trades = exchange.fetch_trades(symbol, limit=limit)
+        if not trades:
+            return None
+        buy_vol  = sum(t["amount"] for t in trades if t.get("side") == "buy")
+        sell_vol = sum(t["amount"] for t in trades if t.get("side") == "sell")
+        total = buy_vol + sell_vol
+        return round(buy_vol / total, 3) if total > 0 else None
+    except Exception:
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────
 # SINGLE SYMBOL ANALYSIS
 # ─────────────────────────────────────────────────────────────────
 
@@ -259,6 +288,23 @@ def analyze_symbol(exchange, symbol: str) -> dict | None:
         # ── GATE: volume explosion required first ──
         explosion, vol_ratio, price_chg_pct = calc_volume_explosion(candles)
         if not explosion:
+            return None
+
+        # ── GATE: volume direction confirmation ──
+        # A volume spike alone isn't a buy signal — it has to be BUYING
+        # volume. We check two things: (1) where the candle closed within
+        # its range (VSA-style), and (2) the actual taker buy/sell split
+        # from recent trades.
+        clv = calc_close_location_value(candles)
+        if clv is not None and clv < cfg.MIN_CLV:
+            log(f"  🚫 {symbol} vol={vol_ratio}x but CLV={clv} — closed near the low, "
+                f"likely selling/distribution. Skipped.")
+            return None
+
+        buy_ratio = calc_taker_buy_ratio(exchange, symbol)
+        if buy_ratio is not None and buy_ratio < cfg.MIN_TAKER_BUY_RATIO:
+            log(f"  🚫 {symbol} vol={vol_ratio}x but taker buy_ratio={buy_ratio} — "
+                f"sell-dominated. Skipped.")
             return None
 
         # ── All indicators ──
@@ -308,6 +354,11 @@ def analyze_symbol(exchange, symbol: str) -> dict | None:
             extra.append(f"Williams%R={will_r}")
         if extra:
             reasons.append("ℹ️  " + "  |  ".join(extra))
+
+        if clv is not None or buy_ratio is not None:
+            clv_str = f"CLV={clv}" if clv is not None else "CLV=n/a"
+            buy_str = f"Buy ratio={buy_ratio}" if buy_ratio is not None else "Buy ratio=n/a"
+            reasons.append(f"✅ Volume confirmed buy-side ({clv_str} | {buy_str})")
 
         if score < cfg.SCORE_THRESHOLD:
             return None
