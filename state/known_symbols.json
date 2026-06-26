@@ -882,12 +882,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-06-25T23:07:15.407189+00:00",
-  "alert_history": {},
+  "last_run": "2026-06-26T10:43:29.009170+00:00",
+  "alert_history": {
+    "VELVET/USDT": "2026-06-26T10:43:27.515051+00:00"
+  },
   "stats": {
     "wins": 1,
     "losses": 0,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "VELVET/USDT",
+      "alert_time": "2026-06-26T10:43:27.515068+00:00",
+      "score": 76,
+      "entry": 0.51374,
+      "sl": 0.50660312,
+      "tp1": 0.52325584,
+      "tp2": 0.5303927199999999
+    }
+  ]
 }
