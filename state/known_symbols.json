@@ -883,24 +883,12 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-06-28T10:21:24.680469+00:00",
-  "alert_history": {
-    "GWEI/USDT": "2026-06-28T10:21:23.147655+00:00"
-  },
+  "last_run": "2026-06-28T15:12:58.274288+00:00",
+  "alert_history": {},
   "stats": {
-    "wins": 2,
+    "wins": 3,
     "losses": 5,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "GWEI/USDT",
-      "alert_time": "2026-06-28T10:21:23.147670+00:00",
-      "score": 70,
-      "entry": 0.138959,
-      "sl": 0.13714499,
-      "tp1": 0.14137768,
-      "tp2": 0.14319169
-    }
-  ]
+  "pending_outcomes": []
 }
