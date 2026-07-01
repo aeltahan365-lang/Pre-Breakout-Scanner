@@ -883,12 +883,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-06-30T22:08:13.405483+00:00",
-  "alert_history": {},
+  "last_run": "2026-07-01T11:01:32.343962+00:00",
+  "alert_history": {
+    "KCS/USDT": "2026-07-01T11:01:30.814079+00:00"
+  },
   "stats": {
     "wins": 3,
     "losses": 5,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "KCS/USDT",
+      "alert_time": "2026-07-01T11:01:30.814095+00:00",
+      "score": 86,
+      "entry": 6.745,
+      "sl": 6.71544331,
+      "tp1": 6.78440892,
+      "tp2": 6.81396561
+    }
+  ]
 }
