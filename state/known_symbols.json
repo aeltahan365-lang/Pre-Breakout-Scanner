@@ -139,6 +139,7 @@
     "CAKE/USDT",
     "CAMP/USDT",
     "CAP/USDT",
+    "CARDS/USDT",
     "CARV/USDT",
     "CAT/USDT",
     "CATI/USDT",
@@ -178,7 +179,6 @@
     "CRTR/USDT",
     "CRV/USDT",
     "CSPR/USDT",
-    "CTA/USDT",
     "CTC/USDT",
     "CTR/USDT",
     "CTSI/USDT",
@@ -192,6 +192,7 @@
     "DAG/USDT",
     "DAO/USDT",
     "DASH/USDT",
+    "DATA/USDT",
     "DBR/USDT",
     "DCR/USDT",
     "DEEP/USDT",
@@ -861,34 +862,12 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-08T22:45:51.853138+00:00",
-  "alert_history": {
-    "COTI/USDT": "2026-07-08T22:45:49.174702+00:00",
-    "TIA/USDT": "2026-07-08T22:45:50.541140+00:00"
-  },
+  "last_run": "2026-07-09T10:44:09.385968+00:00",
+  "alert_history": {},
   "stats": {
-    "wins": 11,
+    "wins": 13,
     "losses": 16,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "COTI/USDT",
-      "alert_time": "2026-07-08T22:45:49.174721+00:00",
-      "score": 94,
-      "entry": 0.00815,
-      "sl": 0.00810848,
-      "tp1": 0.00820536,
-      "tp2": 0.00824688
-    },
-    {
-      "symbol": "TIA/USDT",
-      "alert_time": "2026-07-08T22:45:50.541156+00:00",
-      "score": 76,
-      "entry": 0.3965,
-      "sl": 0.39233849000000004,
-      "tp1": 0.40204868000000005,
-      "tp2": 0.40621019
-    }
-  ]
+  "pending_outcomes": []
 }
