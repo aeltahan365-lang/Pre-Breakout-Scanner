@@ -863,12 +863,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-12T11:49:07.286459+00:00",
-  "alert_history": {},
+  "last_run": "2026-07-12T15:41:48.598116+00:00",
+  "alert_history": {
+    "TURTLE/USDT": "2026-07-12T15:41:47.119387+00:00"
+  },
   "stats": {
     "wins": 15,
     "losses": 21,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "TURTLE/USDT",
+      "alert_time": "2026-07-12T15:41:47.119405+00:00",
+      "score": 78,
+      "entry": 0.03415,
+      "sl": 0.03410227,
+      "tp1": 0.03421364,
+      "tp2": 0.03426137
+    }
+  ]
 }
