@@ -142,6 +142,7 @@
     "CAP/USDT",
     "CARDS/USDT",
     "CARV/USDT",
+    "CASHCAT/USDT",
     "CAT/USDT",
     "CATI/USDT",
     "CC/USDT",
@@ -863,12 +864,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-15T07:32:06.636901+00:00",
-  "alert_history": {},
+  "last_run": "2026-07-15T12:12:09.942402+00:00",
+  "alert_history": {
+    "REKT/USDT": "2026-07-15T12:12:08.532769+00:00"
+  },
   "stats": {
     "wins": 19,
     "losses": 26,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "REKT/USDT",
+      "alert_time": "2026-07-15T12:12:08.532787+00:00",
+      "score": 74,
+      "entry": 1.2317e-07,
+      "sl": null,
+      "tp1": null,
+      "tp2": null
+    }
+  ]
 }
