@@ -864,14 +864,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-19T19:58:01.247026+00:00",
+  "last_run": "2026-07-19T20:48:01.408154+00:00",
   "alert_history": {
-    "PUMP/USDT": "2026-07-19T18:44:00.631696+00:00"
+    "JUP/USDT": "2026-07-19T20:47:59.901698+00:00"
   },
   "stats": {
     "wins": 23,
     "losses": 30,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "JUP/USDT",
+      "alert_time": "2026-07-19T20:47:59.901716+00:00",
+      "score": 70,
+      "entry": 0.193,
+      "sl": 0.19224229,
+      "tp1": 0.19401028,
+      "tp2": 0.19476799
+    }
+  ]
 }
