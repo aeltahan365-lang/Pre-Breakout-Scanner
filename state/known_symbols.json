@@ -864,10 +864,8 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-20T16:58:13.165282+00:00",
-  "alert_history": {
-    "XPR/USDT": "2026-07-20T15:25:25.061422+00:00"
-  },
+  "last_run": "2026-07-20T18:56:21.450180+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 25,
     "losses": 34,
