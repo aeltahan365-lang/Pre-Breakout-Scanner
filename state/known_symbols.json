@@ -864,24 +864,12 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-21T07:25:05.628607+00:00",
-  "alert_history": {
-    "MANTRA/USDT": "2026-07-21T07:25:04.306237+00:00"
-  },
+  "last_run": "2026-07-21T10:05:27.316887+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 27,
-    "losses": 36,
+    "losses": 37,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "MANTRA/USDT",
-      "alert_time": "2026-07-21T07:25:04.306255+00:00",
-      "score": 86,
-      "entry": 0.00666,
-      "sl": 0.00661185,
-      "tp1": 0.0067242000000000005,
-      "tp2": 0.00677235
-    }
-  ]
+  "pending_outcomes": []
 }
