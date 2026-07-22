@@ -89,6 +89,7 @@
     "BAN/USDT",
     "BANANA/USDT",
     "BAND/USDT",
+    "BANK/USDT",
     "BARD/USDT",
     "BAS/USDT",
     "BASED/USDT",
@@ -864,22 +865,12 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-22T09:13:56.273813+00:00",
+  "last_run": "2026-07-22T11:24:56.769326+00:00",
   "alert_history": {},
   "stats": {
-    "wins": 30,
+    "wins": 31,
     "losses": 44,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "RWA/USDT",
-      "alert_time": "2026-07-22T06:20:50.159488+00:00",
-      "score": 86,
-      "entry": 0.002746,
-      "sl": 0.00271051,
-      "tp1": 0.00279332,
-      "tp2": 0.00282881
-    }
-  ]
+  "pending_outcomes": []
 }
