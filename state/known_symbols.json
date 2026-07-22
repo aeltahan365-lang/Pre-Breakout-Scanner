@@ -864,12 +864,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-22T03:50:40.721969+00:00",
-  "alert_history": {},
+  "last_run": "2026-07-22T06:20:51.709551+00:00",
+  "alert_history": {
+    "RWA/USDT": "2026-07-22T06:20:50.159472+00:00"
+  },
   "stats": {
     "wins": 30,
     "losses": 44,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "RWA/USDT",
+      "alert_time": "2026-07-22T06:20:50.159488+00:00",
+      "score": 86,
+      "entry": 0.002746,
+      "sl": 0.00271051,
+      "tp1": 0.00279332,
+      "tp2": 0.00282881
+    }
+  ]
 }
