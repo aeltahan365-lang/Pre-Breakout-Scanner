@@ -866,12 +866,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-25T15:47:45.267101+00:00",
-  "alert_history": {},
+  "last_run": "2026-07-25T16:42:20.074942+00:00",
+  "alert_history": {
+    "HBAR/USDT": "2026-07-25T16:42:18.685179+00:00"
+  },
   "stats": {
     "wins": 35,
     "losses": 51,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "HBAR/USDT",
+      "alert_time": "2026-07-25T16:42:18.685197+00:00",
+      "score": 74,
+      "entry": 0.07049,
+      "sl": 0.07030301,
+      "tp1": 0.07073932,
+      "tp2": 0.07092630999999999
+    }
+  ]
 }
