@@ -866,24 +866,12 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-25T01:03:37.582227+00:00",
-  "alert_history": {
-    "ALGO/USDT": "2026-07-25T01:03:36.102641+00:00"
-  },
+  "last_run": "2026-07-25T04:22:24.113110+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 35,
-    "losses": 49,
+    "losses": 50,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "ALGO/USDT",
-      "alert_time": "2026-07-25T01:03:36.102657+00:00",
-      "score": 95,
-      "entry": 0.0883,
-      "sl": 0.08732764,
-      "tp1": 0.08959648,
-      "tp2": 0.09056884
-    }
-  ]
+  "pending_outcomes": []
 }
