@@ -866,24 +866,14 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-25T13:04:36.535343+00:00",
+  "last_run": "2026-07-25T14:34:45.139417+00:00",
   "alert_history": {
     "LDO/USDT": "2026-07-25T13:04:35.004272+00:00"
   },
   "stats": {
     "wins": 35,
-    "losses": 50,
+    "losses": 51,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "LDO/USDT",
-      "alert_time": "2026-07-25T13:04:35.004289+00:00",
-      "score": 85,
-      "entry": 0.3808,
-      "sl": 0.37934782,
-      "tp1": 0.38273624,
-      "tp2": 0.38418842000000003
-    }
-  ]
+  "pending_outcomes": []
 }
