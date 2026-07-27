@@ -867,12 +867,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-27T17:22:42.470244+00:00",
-  "alert_history": {},
+  "last_run": "2026-07-27T19:00:30.709299+00:00",
+  "alert_history": {
+    "TEL/USDT": "2026-07-27T19:00:29.319945+00:00"
+  },
   "stats": {
     "wins": 38,
     "losses": 64,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "TEL/USDT",
+      "alert_time": "2026-07-27T19:00:29.319964+00:00",
+      "score": 71,
+      "entry": 0.001804,
+      "sl": 0.0017754700000000001,
+      "tp1": 0.00184204,
+      "tp2": 0.00187057
+    }
+  ]
 }
