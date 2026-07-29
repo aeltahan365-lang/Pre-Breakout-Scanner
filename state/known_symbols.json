@@ -867,12 +867,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-29T21:30:48.916042+00:00",
-  "alert_history": {},
+  "last_run": "2026-07-29T22:33:44.960201+00:00",
+  "alert_history": {
+    "AZERO/USDT": "2026-07-29T22:33:43.563980+00:00"
+  },
   "stats": {
     "wins": 42,
     "losses": 69,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "AZERO/USDT",
+      "alert_time": "2026-07-29T22:33:43.563997+00:00",
+      "score": 75,
+      "entry": 0.01166,
+      "sl": 0.011426825,
+      "tp1": 0.0119709,
+      "tp2": 0.012204075
+    }
+  ]
 }
