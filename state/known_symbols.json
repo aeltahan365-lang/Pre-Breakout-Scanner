@@ -850,12 +850,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-30T17:03:51.948348+00:00",
-  "alert_history": {},
+  "last_run": "2026-07-30T18:26:10.564506+00:00",
+  "alert_history": {
+    "PENGU/USDT": "2026-07-30T18:26:09.006473+00:00"
+  },
   "stats": {
     "wins": 43,
     "losses": 73,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "PENGU/USDT",
+      "alert_time": "2026-07-30T18:26:09.006490+00:00",
+      "score": 81,
+      "entry": 0.005897,
+      "sl": 0.005866580000000001,
+      "tp1": 0.005937560000000001,
+      "tp2": 0.00596798
+    }
+  ]
 }
