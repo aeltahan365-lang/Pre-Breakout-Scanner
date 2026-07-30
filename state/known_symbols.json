@@ -302,6 +302,7 @@
     "GRIFFAIN/USDT",
     "GROVE/USDT",
     "GRT/USDT",
+    "GRVT/USDT",
     "GTAI/USDT",
     "GTC/USDT",
     "GUN/USDT",
@@ -849,24 +850,12 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-07-30T13:18:16.676576+00:00",
-  "alert_history": {
-    "CC/USDT": "2026-07-30T13:18:15.127342+00:00"
-  },
+  "last_run": "2026-07-30T15:29:28.157291+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 43,
-    "losses": 72,
+    "losses": 73,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "CC/USDT",
-      "alert_time": "2026-07-30T13:18:15.127354+00:00",
-      "score": 84,
-      "entry": 0.12391,
-      "sl": 0.12328825,
-      "tp1": 0.124739,
-      "tp2": 0.12536075
-    }
-  ]
+  "pending_outcomes": []
 }
