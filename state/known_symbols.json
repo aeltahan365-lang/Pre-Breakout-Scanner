@@ -850,12 +850,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-01T06:30:21.491689+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-01T08:44:19.884188+00:00",
+  "alert_history": {
+    "FARTCOIN/USDT": "2026-08-01T08:44:18.286988+00:00"
+  },
   "stats": {
     "wins": 47,
     "losses": 79,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "FARTCOIN/USDT",
+      "alert_time": "2026-08-01T08:44:18.287003+00:00",
+      "score": 78,
+      "entry": 0.1295,
+      "sl": 0.128600015,
+      "tp1": 0.13069998,
+      "tp2": 0.131599965
+    }
+  ]
 }
