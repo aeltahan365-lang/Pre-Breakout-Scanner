@@ -850,12 +850,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-01T18:45:45.874499+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-01T19:58:29.973247+00:00",
+  "alert_history": {
+    "ICNT/USDT": "2026-08-01T19:58:28.462718+00:00"
+  },
   "stats": {
     "wins": 49,
     "losses": 80,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "ICNT/USDT",
+      "alert_time": "2026-08-01T19:58:28.462735+00:00",
+      "score": 86,
+      "entry": 0.12587,
+      "sl": 0.12310272500000001,
+      "tp1": 0.1295597,
+      "tp2": 0.132326975
+    }
+  ]
 }
