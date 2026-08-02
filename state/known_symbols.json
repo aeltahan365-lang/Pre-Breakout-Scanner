@@ -850,10 +850,8 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-02T21:57:11.695558+00:00",
-  "alert_history": {
-    "BOB/USDT": "2026-08-02T20:55:41.763006+00:00"
-  },
+  "last_run": "2026-08-02T22:58:19.183227+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 53,
     "losses": 85,
