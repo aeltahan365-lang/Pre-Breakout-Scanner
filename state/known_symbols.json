@@ -850,12 +850,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-02T02:34:05.558392+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-02T05:46:40.044865+00:00",
+  "alert_history": {
+    "BCH/USDT": "2026-08-02T05:46:38.563095+00:00"
+  },
   "stats": {
     "wins": 49,
     "losses": 81,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "BCH/USDT",
+      "alert_time": "2026-08-02T05:46:38.563112+00:00",
+      "score": 78,
+      "entry": 211.09,
+      "sl": 210.21158926,
+      "tp1": 212.26121432,
+      "tp2": 213.13962506000001
+    }
+  ]
 }
