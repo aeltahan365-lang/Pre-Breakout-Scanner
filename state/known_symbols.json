@@ -850,12 +850,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-02T22:58:19.183227+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-02T23:59:54.590537+00:00",
+  "alert_history": {
+    "PRL/USDT": "2026-08-02T23:59:53.055208+00:00"
+  },
   "stats": {
     "wins": 53,
     "losses": 85,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "PRL/USDT",
+      "alert_time": "2026-08-02T23:59:53.055220+00:00",
+      "score": 65,
+      "entry": 0.26713,
+      "sl": 0.263893795,
+      "tp1": 0.27144493999999997,
+      "tp2": 0.27468114499999996
+    }
+  ]
 }
