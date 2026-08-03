@@ -2,6 +2,7 @@
   "known_symbols": [
     "0G/USDT",
     "1INCH/USDT",
+    "2U2/USDT",
     "2Z/USDT",
     "9BIT/USDT",
     "A/USDT",
@@ -850,7 +851,7 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-03T06:03:16.761769+00:00",
+  "last_run": "2026-08-03T10:04:43.240402+00:00",
   "alert_history": {},
   "stats": {
     "wins": 53,
