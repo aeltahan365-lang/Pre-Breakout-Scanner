@@ -541,6 +541,7 @@
     "PIGGY/USDT",
     "PIN/USDT",
     "PIPE/USDT",
+    "PIPEDOG/USDT",
     "PIX/USDT",
     "PIXEL/USDT",
     "PLAI/USDT",
@@ -855,7 +856,7 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-06T10:12:22.864111+00:00",
+  "last_run": "2026-08-06T12:23:46.795479+00:00",
   "alert_history": {},
   "stats": {
     "wins": 59,
