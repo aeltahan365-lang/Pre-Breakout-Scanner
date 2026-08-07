@@ -856,12 +856,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-07T14:23:24.019992+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-07T15:29:48.101071+00:00",
+  "alert_history": {
+    "ICP/USDT": "2026-08-07T15:29:46.753533+00:00"
+  },
   "stats": {
     "wins": 59,
     "losses": 92,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "ICP/USDT",
+      "alert_time": "2026-08-07T15:29:46.753553+00:00",
+      "score": 78,
+      "entry": 2.099,
+      "sl": 2.0901901400000003,
+      "tp1": 2.11074648,
+      "tp2": 2.1195563400000004
+    }
+  ]
 }
