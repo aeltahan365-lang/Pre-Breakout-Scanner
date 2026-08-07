@@ -856,10 +856,8 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-07T17:26:12.160545+00:00",
-  "alert_history": {
-    "ICP/USDT": "2026-08-07T15:29:46.753533+00:00"
-  },
+  "last_run": "2026-08-07T18:15:37.995537+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 59,
     "losses": 93,
