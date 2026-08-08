@@ -856,12 +856,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-08T09:39:07.852265+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-08T10:17:01.138789+00:00",
+  "alert_history": {
+    "KGEN/USDT": "2026-08-08T10:16:59.633950+00:00"
+  },
   "stats": {
     "wins": 61,
     "losses": 95,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "KGEN/USDT",
+      "alert_time": "2026-08-08T10:16:59.633967+00:00",
+      "score": 76,
+      "entry": 0.21081,
+      "sl": 0.203727405,
+      "tp1": 0.22025346,
+      "tp2": 0.227336055
+    }
+  ]
 }
