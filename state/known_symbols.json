@@ -856,12 +856,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-08T01:24:55.595975+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-08T03:12:11.120742+00:00",
+  "alert_history": {
+    "LIT/USDT": "2026-08-08T03:12:09.588741+00:00"
+  },
   "stats": {
     "wins": 59,
     "losses": 94,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "LIT/USDT",
+      "alert_time": "2026-08-08T03:12:09.588757+00:00",
+      "score": 78,
+      "entry": 2.347,
+      "sl": 2.32205488,
+      "tp1": 2.38026016,
+      "tp2": 2.40520528
+    }
+  ]
 }
