@@ -856,24 +856,14 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-09T06:33:06.375546+00:00",
+  "last_run": "2026-08-09T07:39:42.130096+00:00",
   "alert_history": {
     "CAP/USDT": "2026-08-09T05:39:57.459012+00:00"
   },
   "stats": {
     "wins": 68,
-    "losses": 104,
+    "losses": 105,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "CAP/USDT",
-      "alert_time": "2026-08-09T05:39:57.459028+00:00",
-      "score": 86,
-      "entry": 0.038979,
-      "sl": 0.038308125,
-      "tp1": 0.0398735,
-      "tp2": 0.040544375
-    }
-  ]
+  "pending_outcomes": []
 }
