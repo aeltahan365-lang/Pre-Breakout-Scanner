@@ -17,7 +17,7 @@ QUOTE              = "USDT"
 TIMEFRAME_PRIMARY  = "15m"         # scanning timeframe
 TIMEFRAME_CONFIRM  = "1h"          # higher-TF confirmation
 CANDLES_PRIMARY    = 100           # candles fetched on 15m
-CANDLES_CONFIRM    = 60            # candles fetched on 1h
+CANDLES_CONFIRM    = 220           # candles fetched on 1h (needs 200+ for the 50/200 golden/death cross)
 
 # ── Volume ────────────────────────────────────────────────────────
 VOLUME_LOOKBACK       = 20         # bars to average for baseline
@@ -56,27 +56,80 @@ TREND_SLOW_EMA     = 50
 ADL_EMA_FAST       = 3
 ADL_EMA_SLOW       = 10
 
-# ── Scoring Weights (must sum to 100) ────────────────────────────
-# Each section contributes max N points to the composite score.
+# ── Scoring Weights ───────────────────────────────────────────────
+# Each section contributes up to N points; score is clipped to 0-100 at the
+# end, so the "budget" below intentionally exceeds 100 (a genuinely
+# high-conviction setup — vol + squeeze + trend + institutional confluence —
+# should be able to hit 100 without every single sub-signal maxing out).
 WEIGHT_VOLUME_EXPLOSION  = 25   # core trigger
-WEIGHT_BB_SQUEEZE        = 15   # pre-breakout coil
-WEIGHT_RSI               = 10   # healthy zone (40-65)
+WEIGHT_BB_SQUEEZE        = 15   # pre-breakout coil (leading — the whole point of "pre" breakout)
+WEIGHT_RSI               = 10   # healthy zone (38-68, see build_score)
 WEIGHT_MACD              = 10   # bullish cross
-WEIGHT_DONCHIAN          = 10   # channel breakout
+WEIGHT_DONCHIAN          = 6    # channel breakout — intentionally lower: by definition this fires
+                                 # AFTER price already broke the range, so it's the most lagging
+                                 # signal in the suite. Kept as confirmation, not a primary driver.
 WEIGHT_TREND_EMA         = 10   # EMA alignment
 WEIGHT_ADL_CHAIKIN       = 10   # accumulation/distribution
 WEIGHT_LIN_REGRESSION    = 5    # slope + position
 WEIGHT_OBV               = 5    # OBV rising with price
 
+# ── Institutional-Grade Signals ───────────────────────────────────
+# The kind of confluence a discretionary desk checks before sizing a long:
+# higher-TF trend regime, momentum divergence, and performance vs the market
+# beta (BTC) — not just "did volume and price move on this one candle."
+USE_GOLDEN_CROSS            = True
+MA_FAST_PERIOD               = 50
+MA_SLOW_PERIOD               = 200
+WEIGHT_GOLDEN_CROSS          = 8     # 1h 50/200 EMA golden cross just formed, or already in a bullish regime
+GOLDEN_CROSS_PENALTY         = 10    # 1h is in a death-cross regime — you'd be longing against the higher-TF trend
+
+USE_DIVERGENCE_DETECTION     = True
+DIVERGENCE_LOOKBACK          = 40    # bars (15m) scanned for swing highs/lows
+WEIGHT_BULLISH_DIVERGENCE    = 8     # price low fading while RSI/MACD momentum rises — real accumulation
+BEARISH_DIVERGENCE_PENALTY   = 12    # price still rising but momentum fading — the classic "buying the top" trap
+
+USE_RELATIVE_STRENGTH        = True
+RS_LOOKBACK                  = 20    # bars (15m) compared against BTC over the same window
+WEIGHT_RELATIVE_STRENGTH     = 7     # coin is genuinely outperforming BTC, not just riding a market-wide move
+RS_LAGGARD_PENALTY           = 6     # coin is UNDERPERFORMING BTC despite the volume spike — likely just beta, not alpha
+
+# ── Market Sentiment / News (free, keyless sources) ───────────────
+USE_FEAR_GREED               = True
+FEAR_GREED_EXTREME_GREED     = 80    # alternative.me Fear & Greed Index — euphoria zone
+FEAR_GREED_THRESHOLD_BUMP    = 8     # raise the score bar during euphoria — don't chase blow-off tops
+
+USE_NEWS_FILTER              = True
+NEWS_LOOKBACK_HOURS          = 24    # coin-specific negative catalyst window (hard block)
+NEWS_MARKET_LOOKBACK_HOURS   = 12    # market-wide negative catalyst window (pauses the whole cycle)
+WEIGHT_POSITIVE_NEWS         = 5     # coin has a recent positive catalyst headline
+
 # ── Scoring Thresholds ───────────────────────────────────────────
 SCORE_THRESHOLD         = 65    # minimum score to send alert (0-100)
 HTF_CONFIRM_BONUS       =  5    # added if 1h also looks bullish
-EARLY_MOVE_BONUS        =  5    # added if price change 0.5%-8%
+EARLY_MOVE_BONUS        =  5    # added if price change is still early (see EARLY_MOVE_MIN/MAX_PCT)
+EARLY_MOVE_MIN_PCT      = 0.3
+EARLY_MOVE_MAX_PCT      = 3.0   # tightened from 8.0 — past ~3% on a single 15m candle the move is
+                                 # usually already well underway, which is exactly how "pre-breakout"
+                                 # alerts end up firing near the top instead of before it.
 
 # ── Alert Behavior ───────────────────────────────────────────────
 ALERT_COOLDOWN_MINUTES  = 60    # re-alert same symbol only after this
 MAX_ALERTS_PER_RUN      = 10    # cap to avoid Telegram flood
 STATE_FILE              = "state/known_symbols.json"
+TRADE_LOG_FILE          = "state/trade_log.jsonl"   # every resolved trade (live + backtest), for the tuner
+
+# ── Backtesting ────────────────────────────────────────────────────
+BACKTEST_DAYS           = 30    # how far back to replay
+BACKTEST_MAX_SYMBOLS    = 25    # top-N by 24h quote volume — bounds API calls/runtime
+BACKTEST_MIN_QUOTE_VOL  = MIN_QUOTE_VOLUME_24H
+BACKTEST_STEP_BARS      = 1     # evaluate every Nth 15m bar (1 = every bar, slower but thorough)
+BACKTEST_SCORE_FLOOR    = 40    # record candidates down to this score (below it isn't interesting even for threshold-sweeping)
+BACKTEST_MAX_HOLD_BARS  = 192   # 48h at 15m bars (matches scanner.OUTCOME_EXPIRY_HOURS)
+
+# ── Self-Tuning ──────────────────────────────────────────────────
+TUNER_MIN_SAMPLE_SIZE   = 20    # minimum trades WITH and WITHOUT a component before trusting its win-rate delta
+TUNER_MAX_WEIGHT_NUDGE  = 0.20  # cap a single tuning pass to a +/-20% change per weight
+TUNER_THRESHOLD_SWEEP   = [50, 55, 60, 65, 70, 75, 80, 85]
 
 # ── Telegram ─────────────────────────────────────────────────────
 import os

@@ -17,6 +17,7 @@ from config import (
     CMF_PERIOD, WILLIAMS_PERIOD, DONCHIAN_PERIOD,
     REGRESSION_PERIOD, TREND_FAST_EMA, TREND_SLOW_EMA,
     ADL_EMA_FAST, ADL_EMA_SLOW, VOLUME_LOOKBACK, VOLUME_SPIKE_RATIO,
+    MA_FAST_PERIOD, MA_SLOW_PERIOD, DIVERGENCE_LOOKBACK,
 )
 
 
@@ -541,6 +542,210 @@ def calc_trend(candles: list,
 
 
 # ═══════════════════════════════════════════════════════════════════
+# GOLDEN CROSS / DEATH CROSS (50/200 MA regime — run on 1h)
+# ═══════════════════════════════════════════════════════════════════
+# The classic institutional trend-regime signal. A 15m volume spike inside
+# a 1h death-cross regime is a long fighting the higher-timeframe trend —
+# exactly the kind of setup that tends to fail and reverse fast.
+
+def calc_golden_death_cross(candles_htf: list,
+                            fast: int = MA_FAST_PERIOD,
+                            slow: int = MA_SLOW_PERIOD,
+                            lookback_cross: int = 5) -> dict:
+    """
+    Detects a Golden Cross (fast EMA crosses above slow EMA) or Death Cross
+    (fast EMA crosses below slow EMA) within the last `lookback_cross` bars.
+
+    Returns dict:
+      event            : 'golden_cross' | 'death_cross' | 'none'
+      fast_ma, slow_ma : float | None (current values)
+      trend            : 'bullish' | 'bearish' | 'unknown'
+      bars_since_cross : int | None
+    """
+    closes = _closes(candles_htf)
+    if len(closes) < slow + lookback_cross + 1:
+        return {"event": "none", "fast_ma": None, "slow_ma": None,
+                "trend": "unknown", "bars_since_cross": None}
+
+    ef = ema(closes, fast)
+    es = ema(closes, slow)
+    diffs = [(f - s) if f is not None and s is not None else None
+             for f, s in zip(ef, es)]
+    valid_idx = [i for i, v in enumerate(diffs) if v is not None]
+    if len(valid_idx) < lookback_cross + 1:
+        return {"event": "none", "fast_ma": ef[-1], "slow_ma": es[-1],
+                "trend": "unknown", "bars_since_cross": None}
+
+    trend = "bullish" if diffs[valid_idx[-1]] > 0 else "bearish"
+    event, bars_since = "none", None
+
+    for k in range(1, min(lookback_cross, len(valid_idx) - 1) + 1):
+        i_cur, i_prev = valid_idx[-k], valid_idx[-k - 1]
+        cur, prev = diffs[i_cur], diffs[i_prev]
+        if prev <= 0 < cur:
+            event, bars_since = "golden_cross", k - 1
+            break
+        if prev >= 0 > cur:
+            event, bars_since = "death_cross", k - 1
+            break
+
+    return {
+        "event":            event,
+        "fast_ma":          round(ef[-1], 8) if ef[-1] is not None else None,
+        "slow_ma":          round(es[-1], 8) if es[-1] is not None else None,
+        "trend":            trend,
+        "bars_since_cross": bars_since,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════
+# DIVERGENCE DETECTION (RSI & MACD vs price)
+# ═══════════════════════════════════════════════════════════════════
+# This is the single biggest lever against "alerting after it already
+# pumped and is rolling over": bearish divergence (price still pushing up,
+# momentum already fading) is the textbook late-entry warning.
+
+def _find_swing_points(values: list, window: int = 3, kind: str = "low") -> list:
+    """Local pivot detector: index i is a swing low/high if it's the
+    min/max of the (2*window+1)-bar segment centered on it."""
+    idxs = []
+    n = len(values)
+    for i in range(window, n - window):
+        seg = values[i - window: i + window + 1]
+        if kind == "low" and values[i] == min(seg):
+            idxs.append(i)
+        elif kind == "high" and values[i] == max(seg):
+            idxs.append(i)
+    return idxs
+
+
+def calc_rsi_divergence(candles: list,
+                        lookback: int = DIVERGENCE_LOOKBACK,
+                        pivot_window: int = 3) -> dict:
+    """
+    Classic RSI divergence over the last `lookback` bars:
+      bullish : price makes a LOWER low, RSI makes a HIGHER low
+                (selling pressure fading -> potential reversal up)
+      bearish : price makes a HIGHER high, RSI makes a LOWER high
+                (momentum fading into the rally -> exhaustion / late entry)
+    Returns dict: bullish (bool), bearish (bool), detail (str|None)
+    """
+    full_closes = _closes(candles)
+    if len(candles) < lookback + RSI_PERIOD + 5:
+        return {"bullish": False, "bearish": False, "detail": None}
+
+    offset = len(candles) - lookback
+    window_closes = full_closes[-lookback:]
+
+    rsi_series = []
+    for i in range(lookback):
+        sub = full_closes[: offset + i + 1]
+        rsi_series.append(calc_rsi([{"close": c} for c in sub]) if len(sub) >= RSI_PERIOD + 1 else None)
+
+    lows_idx  = _find_swing_points(window_closes, pivot_window, "low")
+    highs_idx = _find_swing_points(window_closes, pivot_window, "high")
+
+    bullish = bearish = False
+    detail = None
+
+    if len(lows_idx) >= 2:
+        i1, i2 = lows_idx[-2], lows_idx[-1]
+        if rsi_series[i1] is not None and rsi_series[i2] is not None:
+            if window_closes[i2] < window_closes[i1] and rsi_series[i2] > rsi_series[i1]:
+                bullish = True
+                detail = f"price LL ({window_closes[i1]:.6g}→{window_closes[i2]:.6g}) vs RSI HL ({rsi_series[i1]}→{rsi_series[i2]})"
+
+    if len(highs_idx) >= 2:
+        i1, i2 = highs_idx[-2], highs_idx[-1]
+        if rsi_series[i1] is not None and rsi_series[i2] is not None:
+            if window_closes[i2] > window_closes[i1] and rsi_series[i2] < rsi_series[i1]:
+                bearish = True
+                detail = f"price HH ({window_closes[i1]:.6g}→{window_closes[i2]:.6g}) vs RSI LH ({rsi_series[i1]}→{rsi_series[i2]})"
+
+    return {"bullish": bullish, "bearish": bearish, "detail": detail}
+
+
+def calc_macd_divergence(candles: list,
+                         lookback: int = DIVERGENCE_LOOKBACK,
+                         pivot_window: int = 3) -> dict:
+    """
+    Same idea as RSI divergence, using the MACD histogram instead:
+      bullish : price lower low, histogram higher low
+      bearish : price higher high, histogram lower high
+    Returns dict: bullish (bool), bearish (bool), detail (str|None)
+    """
+    closes = _closes(candles)
+    if len(candles) < lookback + MACD_SLOW + MACD_SIGNAL + 5:
+        return {"bullish": False, "bearish": False, "detail": None}
+
+    fast_ema = ema(closes, MACD_FAST)
+    slow_ema = ema(closes, MACD_SLOW)
+    macd_line = [(f - s) if f is not None and s is not None else None
+                 for f, s in zip(fast_ema, slow_ema)]
+    valid_positions = [i for i, v in enumerate(macd_line) if v is not None]
+    if len(valid_positions) < MACD_SIGNAL + lookback:
+        return {"bullish": False, "bearish": False, "detail": None}
+
+    valid_macd = [macd_line[i] for i in valid_positions]
+    sig_series = ema(valid_macd, MACD_SIGNAL)
+    histogram = [None] * len(candles)
+    for pos, m, s in zip(valid_positions, valid_macd, sig_series):
+        histogram[pos] = (m - s) if s is not None else None
+
+    window_closes = closes[-lookback:]
+    window_hist   = histogram[-lookback:]
+
+    lows_idx  = _find_swing_points(window_closes, pivot_window, "low")
+    highs_idx = _find_swing_points(window_closes, pivot_window, "high")
+
+    bullish = bearish = False
+    detail = None
+
+    if len(lows_idx) >= 2:
+        i1, i2 = lows_idx[-2], lows_idx[-1]
+        if window_hist[i1] is not None and window_hist[i2] is not None:
+            if window_closes[i2] < window_closes[i1] and window_hist[i2] > window_hist[i1]:
+                bullish = True
+                detail = "MACD histogram rising while price makes a lower low"
+
+    if len(highs_idx) >= 2:
+        i1, i2 = highs_idx[-2], highs_idx[-1]
+        if window_hist[i1] is not None and window_hist[i2] is not None:
+            if window_closes[i2] > window_closes[i1] and window_hist[i2] < window_hist[i1]:
+                bearish = True
+                detail = "MACD histogram falling while price makes a higher high"
+
+    return {"bullish": bullish, "bearish": bearish, "detail": detail}
+
+
+# ═══════════════════════════════════════════════════════════════════
+# RELATIVE STRENGTH VS BTC
+# ═══════════════════════════════════════════════════════════════════
+# No institutional desk reads an altcoin move in isolation — everything is
+# read against the market beta (BTC). A volume spike that's just BTC-wide
+# chop dragging the alt along is not the same setup as genuine outperformance.
+
+def calc_relative_strength(coin_candles: list, btc_candles: list, lookback: int) -> dict:
+    """
+    Returns dict: coin_pct, btc_pct, rs_spread (coin_pct - btc_pct), leading (bool)
+    or all-None/False if there isn't enough data on either series.
+    """
+    if len(coin_candles) < lookback + 1 or len(btc_candles) < lookback + 1:
+        return {"coin_pct": None, "btc_pct": None, "rs_spread": None, "leading": False}
+    c0, c1 = coin_candles[-lookback - 1]["close"], coin_candles[-1]["close"]
+    b0, b1 = btc_candles[-lookback - 1]["close"], btc_candles[-1]["close"]
+    coin_pct = ((c1 - c0) / c0 * 100) if c0 else 0.0
+    btc_pct  = ((b1 - b0) / b0 * 100) if b0 else 0.0
+    spread   = coin_pct - btc_pct
+    return {
+        "coin_pct":  round(coin_pct, 2),
+        "btc_pct":   round(btc_pct, 2),
+        "rs_spread": round(spread, 2),
+        "leading":   spread > 0,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════
 # HIGHER-TIMEFRAME CONFIRMATION (1h)
 # ═══════════════════════════════════════════════════════════════════
 
@@ -574,6 +779,11 @@ def build_score(
     adl_chai:       dict,
     obv:            dict,
     htf:            dict,
+    golden_cross:   dict = None,
+    rsi_div:        dict = None,
+    macd_div:       dict = None,
+    rel_strength:   dict = None,
+    coin_news:      dict = None,
 ) -> tuple:
     """
     Returns (score: int [0-100], reasons: list[str])
@@ -583,7 +793,15 @@ def build_score(
         WEIGHT_MACD, WEIGHT_DONCHIAN, WEIGHT_TREND_EMA,
         WEIGHT_ADL_CHAIKIN, WEIGHT_LIN_REGRESSION, WEIGHT_OBV,
         VOLUME_SPIKE_RATIO, HTF_CONFIRM_BONUS, EARLY_MOVE_BONUS,
+        EARLY_MOVE_MIN_PCT, EARLY_MOVE_MAX_PCT,
+        WEIGHT_GOLDEN_CROSS, GOLDEN_CROSS_PENALTY,
+        WEIGHT_BULLISH_DIVERGENCE, BEARISH_DIVERGENCE_PENALTY,
+        WEIGHT_RELATIVE_STRENGTH, RS_LAGGARD_PENALTY, RS_LOOKBACK,
+        WEIGHT_POSITIVE_NEWS,
     )
+    golden_cross = golden_cross or {}
+    rsi_div      = rsi_div or {}
+    macd_div     = macd_div or {}
     score   = 0
     reasons = []
 
@@ -667,12 +885,50 @@ def build_score(
         reasons.append(f"✅ 1h trend bullish (HTF confirmation)")
 
     # ── 11. Early price move bonus ──
-    if 0.3 <= price_chg_pct <= 8.0:
+    if EARLY_MOVE_MIN_PCT <= price_chg_pct <= EARLY_MOVE_MAX_PCT:
         score  += EARLY_MOVE_BONUS
         reasons.append(f"✅ Early price move ({price_chg_pct}%) — not late")
-    elif price_chg_pct > 10:
+    elif price_chg_pct > EARLY_MOVE_MAX_PCT:
         score  -= 5
-        reasons.append(f"⚠️ Large candle ({price_chg_pct}%) — may be extended")
+        reasons.append(f"⚠️ Move already {price_chg_pct}% underway — later entry, reduced edge")
+
+    # ── 12. Golden / Death Cross regime (1h, 50/200 EMA) ──
+    if golden_cross.get("event") == "golden_cross":
+        score  += WEIGHT_GOLDEN_CROSS
+        reasons.append(f"🌟 Golden Cross just formed on 1h ({golden_cross.get('bars_since_cross')} bars ago) — bullish regime shift")
+    elif golden_cross.get("trend") == "bullish":
+        score  += WEIGHT_GOLDEN_CROSS * 0.5
+        reasons.append("✅ 1h regime bullish (50 EMA > 200 EMA)")
+    elif golden_cross.get("event") == "death_cross":
+        score  -= GOLDEN_CROSS_PENALTY
+        reasons.append("☠️ Death Cross active on 1h — long is fighting the higher-TF trend")
+    elif golden_cross.get("trend") == "bearish":
+        score  -= GOLDEN_CROSS_PENALTY * 0.5
+        reasons.append("⚠️ 1h regime bearish (50 EMA < 200 EMA)")
+
+    # ── 13. Momentum Divergence (RSI + MACD) ──
+    if rsi_div.get("bullish") or macd_div.get("bullish"):
+        score  += WEIGHT_BULLISH_DIVERGENCE
+        detail = rsi_div.get("detail") or macd_div.get("detail") or ""
+        reasons.append(f"✅ Bullish divergence — momentum building under price ({detail})")
+    if rsi_div.get("bearish") or macd_div.get("bearish"):
+        score  -= BEARISH_DIVERGENCE_PENALTY
+        detail = rsi_div.get("detail") or macd_div.get("detail") or ""
+        reasons.append(f"⚠️ Bearish divergence — momentum fading into the move, classic late-entry warning ({detail})")
+
+    # ── 14. Relative Strength vs BTC ──
+    if rel_strength and rel_strength.get("rs_spread") is not None:
+        if rel_strength["leading"]:
+            score  += WEIGHT_RELATIVE_STRENGTH
+            reasons.append(f"✅ Outperforming BTC ({rel_strength['rs_spread']:+.2f}pp over {RS_LOOKBACK} bars) — genuine relative strength")
+        else:
+            score  -= RS_LAGGARD_PENALTY
+            reasons.append(f"⚠️ Underperforming BTC ({rel_strength['rs_spread']:+.2f}pp) — may just be market-wide beta, not a real breakout")
+
+    # ── 15. News catalyst ──
+    if coin_news and coin_news.get("positive"):
+        score  += WEIGHT_POSITIVE_NEWS
+        reasons.append(f"📰 Positive catalyst: {coin_news.get('headline')}")
 
     score = max(0, min(100, round(score)))
     return score, reasons
