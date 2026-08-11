@@ -856,12 +856,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-11T04:04:20.464348+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-11T05:20:40.145537+00:00",
+  "alert_history": {
+    "JASMY/USDT": "2026-08-11T05:20:38.819038+00:00"
+  },
   "stats": {
     "wins": 74,
     "losses": 110,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "JASMY/USDT",
+      "alert_time": "2026-08-11T05:20:38.819056+00:00",
+      "score": 76,
+      "entry": 0.003982,
+      "sl": 0.00396961,
+      "tp1": 0.00399852,
+      "tp2": 0.00401091
+    }
+  ]
 }
