@@ -1,7 +1,21 @@
 """
-Pre-Breakout Scanner v2 — Advanced Multi-Signal Engine
-=======================================================
+Pre-Breakout Scanner v3 — Institutional-Grade Multi-Signal Engine
+===================================================================
 Runs every 15 minutes via GitHub Actions.
+
+NEW vs v2:
+  • Golden Cross / Death Cross regime filter (1h, 50/200 EMA)
+  • RSI + MACD momentum divergence detection (the main defense against
+    alerting after a move has already topped and is rolling over)
+  • Relative Strength vs BTC (never reads an altcoin move in isolation)
+  • Fear & Greed Index — raises the bar during euphoric/extreme-greed markets
+  • Keyless news layer: hard-blocks alerts on coin-specific negative
+    catalysts (hack/delist/lawsuit), pauses the whole cycle on market-wide
+    risk-off news, and gives a small bonus for positive catalysts
+  • Tightened "early move" bonus window (0.3-3% instead of 0.3-8%) and
+    reduced weight on lagging confirmations (Donchian breakout) — both
+    aimed directly at the "alerts fire after the pump already happened"
+    problem
 
 NEW vs v1:
   • 9 technical indicators (was 4): RSI, MACD, BB Squeeze, OBV, ATR,
@@ -41,8 +55,18 @@ from indicators import (
     calc_donchian,
     calc_linear_regression,
     calc_trend,
+    calc_golden_death_cross,
+    calc_rsi_divergence,
+    calc_macd_divergence,
+    calc_relative_strength,
     htf_confirmation,
     build_score,
+)
+from news import (
+    fetch_fear_greed,
+    fetch_latest_news,
+    check_coin_news,
+    check_market_wide_news,
 )
 
 
@@ -145,6 +169,9 @@ def format_alert(data: dict) -> str:
     tp1      = data.get("tp1")
     tp2      = data.get("tp2")
     htf_ok   = data.get("htf_confirmed", False)
+    gc       = data.get("golden_cross") or {}
+    rs       = data.get("rel_strength")
+    fng      = data.get("fng")
     tv_link  = cfg.TV_BASE.format(exchange="KUCOIN", base=base)
 
     # Score emoji
@@ -168,7 +195,7 @@ def format_alert(data: dict) -> str:
         f"🕐 HTF:    {htf_tag}",
     ]
 
-    if atr and sl and tp1:
+    if atr is not None and sl is not None and tp1 is not None:
         rr1 = abs((tp1 - price) / (price - sl)) if price != sl else 0
         rr2 = abs((tp2 - price) / (price - sl)) if tp2 and price != sl else 0
         lines += [
@@ -179,6 +206,28 @@ def format_alert(data: dict) -> str:
         ]
         if tp2:
             lines.append(f"  🟢 Target 2:   <code>{round(tp2, 8)}</code>  (R/R {rr2:.1f}x)")
+
+    # ── Institutional context block ──
+    gc_event = gc.get("event")
+    if gc_event == "golden_cross":
+        gc_line = "🌟 Golden Cross (1h, 50/200 EMA) — fresh"
+    elif gc.get("trend") == "bullish":
+        gc_line = "🟢 Bullish regime (1h, 50 EMA > 200 EMA)"
+    elif gc_event == "death_cross":
+        gc_line = "☠️ Death Cross (1h, 50/200 EMA) — against trend"
+    elif gc.get("trend") == "bearish":
+        gc_line = "🔴 Bearish regime (1h, 50 EMA < 200 EMA)"
+    else:
+        gc_line = "⚪ Regime unknown (insufficient 1h history)"
+
+    inst_lines = [f"  Regime:  {gc_line}"]
+    if rs and rs.get("rs_spread") is not None:
+        arrow = "▲" if rs["leading"] else "▼"
+        inst_lines.append(f"  RS vs BTC: {arrow} {rs['rs_spread']:+.2f}pp  (coin {rs['coin_pct']:+.2f}% | BTC {rs['btc_pct']:+.2f}%)")
+    if fng and fng.get("value") is not None:
+        inst_lines.append(f"  Fear & Greed: {fng['value']} ({fng.get('classification')})")
+
+    lines += [f"", f"🏛 <b>Institutional Context</b>"] + inst_lines
 
     lines += [
         f"",
@@ -331,12 +380,24 @@ def calc_order_book_imbalance(exchange, symbol: str,
 # SINGLE SYMBOL ANALYSIS
 # ─────────────────────────────────────────────────────────────────
 
-def analyze_symbol(exchange, symbol: str, cryptocom=None) -> dict | None:
+def analyze_symbol(exchange, symbol: str, cryptocom=None,
+                   btc_candles: list = None, news_items: list = None) -> dict | None:
     """
     Full analysis pipeline for one symbol.
     Returns alert dict if signal qualifies, else None.
     """
     try:
+        base = symbol.split("/")[0]
+
+        # ── GATE: coin-specific negative news (hack/delist/lawsuit/etc) ──
+        if cfg.USE_NEWS_FILTER and news_items:
+            coin_news = check_coin_news(base, news_items, max_age_hours=cfg.NEWS_LOOKBACK_HOURS)
+            if coin_news.get("negative"):
+                log(f"  🚫 {symbol} blocked — negative news: {coin_news.get('headline')}")
+                return None
+        else:
+            coin_news = None
+
         # ── Quick 24h volume filter ──
         ticker      = exchange.fetch_ticker(symbol)
         quote_24h   = ticker.get("quoteVolume") or 0
@@ -398,13 +459,30 @@ def analyze_symbol(exchange, symbol: str, cryptocom=None) -> dict | None:
         cmf_val  = calc_cmf(candles)
         will_r   = calc_williams_r(candles)
 
-        # ── Higher-TF (1h) confirmation ──
+        # ── Higher-TF (1h) confirmation + Golden/Death Cross (50/200 EMA) ──
         htf = {"bullish": False, "trend": "unknown", "rsi": None}
+        golden_cross = {"event": "none", "fast_ma": None, "slow_ma": None,
+                        "trend": "unknown", "bars_since_cross": None}
         try:
-            raw_1h = exchange.fetch_ohlcv(symbol, timeframe=cfg.TIMEFRAME_CONFIRM, limit=cfg.CANDLES_CONFIRM)
-            htf    = htf_confirmation(ohlcv_to_dicts(raw_1h))
+            raw_1h     = exchange.fetch_ohlcv(symbol, timeframe=cfg.TIMEFRAME_CONFIRM, limit=cfg.CANDLES_CONFIRM)
+            candles_1h = ohlcv_to_dicts(raw_1h)
+            htf = htf_confirmation(candles_1h)
+            if cfg.USE_GOLDEN_CROSS:
+                golden_cross = calc_golden_death_cross(candles_1h)
         except Exception:
             pass
+
+        # ── Momentum divergence (RSI + MACD vs price, 15m) ──
+        rsi_div  = {"bullish": False, "bearish": False, "detail": None}
+        macd_div = {"bullish": False, "bearish": False, "detail": None}
+        if cfg.USE_DIVERGENCE_DETECTION:
+            rsi_div  = calc_rsi_divergence(candles)
+            macd_div = calc_macd_divergence(candles)
+
+        # ── Relative strength vs BTC ──
+        rel_strength = None
+        if cfg.USE_RELATIVE_STRENGTH and btc_candles:
+            rel_strength = calc_relative_strength(candles, btc_candles, lookback=cfg.RS_LOOKBACK)
 
         # ── Composite score ──
         score, reasons = build_score(
@@ -419,6 +497,11 @@ def analyze_symbol(exchange, symbol: str, cryptocom=None) -> dict | None:
             adl_chai=adl_val,
             obv=obv_val,
             htf=htf,
+            golden_cross=golden_cross,
+            rsi_div=rsi_div,
+            macd_div=macd_div,
+            rel_strength=rel_strength,
+            coin_news=coin_news,
         )
 
         # Append extra indicator summaries to reasons (informational)
@@ -450,7 +533,7 @@ def analyze_symbol(exchange, symbol: str, cryptocom=None) -> dict | None:
         # ── Risk Management (ATR-based) ──
         price = candles[-1]["close"]
         sl = tp1 = tp2 = None
-        if atr_val:
+        if atr_val is not None:
             sl  = price - 1.5 * atr_val
             tp1 = price + 2.0 * atr_val
             tp2 = price + 3.5 * atr_val
@@ -467,6 +550,8 @@ def analyze_symbol(exchange, symbol: str, cryptocom=None) -> dict | None:
             "tp1":           tp1,
             "tp2":           tp2,
             "htf_confirmed": htf.get("bullish", False),
+            "golden_cross":  golden_cross,
+            "rel_strength":  rel_strength,
         }
 
     except ccxt.BaseError as e:
@@ -623,6 +708,34 @@ def main():
     # ── BTC context (skip altcoin longs in BTC bear) ──
     btc_ctx = get_btc_context(kucoin)
 
+    # ── BTC 15m candles (for relative-strength comparisons) ──
+    btc_15m = []
+    if cfg.USE_RELATIVE_STRENGTH:
+        try:
+            btc_15m = ohlcv_to_dicts(kucoin.fetch_ohlcv("BTC/USDT", timeframe=cfg.TIMEFRAME_PRIMARY,
+                                                          limit=cfg.RS_LOOKBACK + 5))
+        except Exception as e:
+            log(f"⚠️  BTC 15m fetch failed: {e} — relative-strength check disabled this cycle")
+
+    # ── Market sentiment: Fear & Greed + news (fetched once per run) ──
+    fng = fetch_fear_greed() if cfg.USE_FEAR_GREED else None
+    if fng:
+        log(f"🌡️  Fear & Greed Index: {fng['value']} ({fng['classification']})")
+
+    news_items = fetch_latest_news() if cfg.USE_NEWS_FILTER else []
+    market_news_risk_off, market_news_headline = False, None
+    if cfg.USE_NEWS_FILTER:
+        mw = check_market_wide_news(news_items, max_age_hours=cfg.NEWS_MARKET_LOOKBACK_HOURS)
+        market_news_risk_off, market_news_headline = mw["risk_off"], mw["headline"]
+        if market_news_risk_off:
+            log(f"🛑 Market-wide risk-off news: {market_news_headline} — pausing new signals this cycle")
+            send_telegram(
+                f"🛑 <b>Scanner paused this cycle</b>\n"
+                f"Reason: {market_news_headline}\n"
+                f"No new long signals will be generated until conditions clear.",
+                silent=True,
+            )
+
     # ── New listing detection ──
     current_symbols = set(usdt_symbols)
     new_listings    = sorted(current_symbols - known_symbols)
@@ -640,50 +753,56 @@ def main():
     checked = 0
     skipped_cooldown = 0
 
+    effective_threshold = cfg.SCORE_THRESHOLD
     if not btc_ctx["bullish"]:
         log("⚠️  BTC context is BEARISH — applying stricter score threshold (+10)")
-        effective_threshold = cfg.SCORE_THRESHOLD + 10
+        effective_threshold += 10
+    if cfg.USE_FEAR_GREED and fng and fng.get("value", 0) >= cfg.FEAR_GREED_EXTREME_GREED:
+        log(f"⚠️  Fear&Greed EXTREME GREED ({fng['value']}) — raising threshold by {cfg.FEAR_GREED_THRESHOLD_BUMP} (euphoria = high reversal risk)")
+        effective_threshold += cfg.FEAR_GREED_THRESHOLD_BUMP
+
+    if market_news_risk_off:
+        log("⏸️  Skipping scan loop this cycle due to market-wide risk-off news")
     else:
-        effective_threshold = cfg.SCORE_THRESHOLD
+        for symbol in usdt_symbols:
+            # Skip BTC and stablecoins
+            base = symbol.split("/")[0]
+            if base in {"BTC", "ETH", "USDC", "BUSD", "DAI", "TUSD", "FDUSD"}:
+                time.sleep(cfg.RATE_LIMIT_SLEEP)
+                continue
 
-    for symbol in usdt_symbols:
-        # Skip BTC and stablecoins
-        base = symbol.split("/")[0]
-        if base in {"BTC", "ETH", "USDC", "BUSD", "DAI", "TUSD", "FDUSD"}:
+            # Cooldown check
+            if is_on_cooldown(symbol, alert_history):
+                skipped_cooldown += 1
+                continue
+
+            result = analyze_symbol(kucoin, symbol, cryptocom, btc_candles=btc_15m, news_items=news_items)
+            checked += 1
+
+            if result is None:
+                time.sleep(cfg.RATE_LIMIT_SLEEP)
+                continue
+
+            # Apply effective threshold
+            if result["score"] < effective_threshold:
+                time.sleep(cfg.RATE_LIMIT_SLEEP)
+                continue
+
+            # Cross-exchange validation
+            if binance and cfg.CROSS_VALIDATE:
+                confirmed = validate_on_binance(binance, symbol)
+                if not confirmed:
+                    log(f"  ⚡ {symbol} score={result['score']} but NOT confirmed on Binance — downgraded")
+                    result["score"] = max(0, result["score"] - 10)
+                    result["reasons"].append("ℹ️  Not confirmed on Binance (−10 pts)")
+                    if result["score"] < effective_threshold:
+                        time.sleep(cfg.RATE_LIMIT_SLEEP)
+                        continue
+
+            result["fng"] = fng
+            alerts.append(result)
+            log(f"  🎯 SIGNAL: {symbol} score={result['score']} vol={result['vol_ratio']}x")
             time.sleep(cfg.RATE_LIMIT_SLEEP)
-            continue
-
-        # Cooldown check
-        if is_on_cooldown(symbol, alert_history):
-            skipped_cooldown += 1
-            continue
-
-        result = analyze_symbol(kucoin, symbol, cryptocom)
-        checked += 1
-
-        if result is None:
-            time.sleep(cfg.RATE_LIMIT_SLEEP)
-            continue
-
-        # Apply effective threshold
-        if result["score"] < effective_threshold:
-            time.sleep(cfg.RATE_LIMIT_SLEEP)
-            continue
-
-        # Cross-exchange validation
-        if binance and cfg.CROSS_VALIDATE:
-            confirmed = validate_on_binance(binance, symbol)
-            if not confirmed:
-                log(f"  ⚡ {symbol} score={result['score']} but NOT confirmed on Binance — downgraded")
-                result["score"] = max(0, result["score"] - 10)
-                result["reasons"].append("ℹ️  Not confirmed on Binance (−10 pts)")
-                if result["score"] < effective_threshold:
-                    time.sleep(cfg.RATE_LIMIT_SLEEP)
-                    continue
-
-        alerts.append(result)
-        log(f"  🎯 SIGNAL: {symbol} score={result['score']} vol={result['vol_ratio']}x")
-        time.sleep(cfg.RATE_LIMIT_SLEEP)
 
     log(f"✅ Scanned {checked} pairs | {skipped_cooldown} on cooldown | {len(alerts)} signal(s)")
 
@@ -711,9 +830,11 @@ def main():
 
     # Summary ping (every cycle, silent notification)
     btc_rsi_str = f"RSI {btc_ctx['rsi']}" if btc_ctx["rsi"] else ""
+    fng_str = f" | F&G: {fng['value']} ({fng['classification']})" if fng else ""
+    pause_str = " | ⏸️ paused (news risk-off)" if market_news_risk_off else ""
     summary = (
         f"🔍 Scan complete — {checked} pairs checked\n"
-        f"Signals: {sent} | BTC: {btc_ctx['trend']} {btc_rsi_str}\n"
+        f"Signals: {sent} | BTC: {btc_ctx['trend']} {btc_rsi_str}{fng_str}{pause_str}\n"
         f"<i>{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</i>"
     )
     send_telegram(summary, silent=True)
