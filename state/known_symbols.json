@@ -214,6 +214,7 @@
     "DOGS/USDT",
     "DOLO/USDT",
     "DOOD/USDT",
+    "DOS/USDT",
     "DOT/USDT",
     "DRIFT/USDT",
     "DSYNC/USDT",
@@ -856,10 +857,8 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-11T11:34:19.379418+00:00",
-  "alert_history": {
-    "CAP/USDT": "2026-08-11T09:46:21.027017+00:00"
-  },
+  "last_run": "2026-08-11T12:29:47.394016+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 77,
     "losses": 111,
