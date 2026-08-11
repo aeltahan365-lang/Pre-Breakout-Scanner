@@ -116,6 +116,20 @@ EARLY_MOVE_MAX_PCT      = 3.0   # tightened from 8.0 — past ~3% on a single 15
 ALERT_COOLDOWN_MINUTES  = 60    # re-alert same symbol only after this
 MAX_ALERTS_PER_RUN      = 10    # cap to avoid Telegram flood
 STATE_FILE              = "state/known_symbols.json"
+TRADE_LOG_FILE          = "state/trade_log.jsonl"   # every resolved trade (live + backtest), for the tuner
+
+# ── Backtesting ────────────────────────────────────────────────────
+BACKTEST_DAYS           = 30    # how far back to replay
+BACKTEST_MAX_SYMBOLS    = 25    # top-N by 24h quote volume — bounds API calls/runtime
+BACKTEST_MIN_QUOTE_VOL  = MIN_QUOTE_VOLUME_24H
+BACKTEST_STEP_BARS      = 1     # evaluate every Nth 15m bar (1 = every bar, slower but thorough)
+BACKTEST_SCORE_FLOOR    = 40    # record candidates down to this score (below it isn't interesting even for threshold-sweeping)
+BACKTEST_MAX_HOLD_BARS  = 192   # 48h at 15m bars (matches scanner.OUTCOME_EXPIRY_HOURS)
+
+# ── Self-Tuning ──────────────────────────────────────────────────
+TUNER_MIN_SAMPLE_SIZE   = 20    # minimum trades WITH and WITHOUT a component before trusting its win-rate delta
+TUNER_MAX_WEIGHT_NUDGE  = 0.20  # cap a single tuning pass to a +/-20% change per weight
+TUNER_THRESHOLD_SWEEP   = [50, 55, 60, 65, 70, 75, 80, 85]
 
 # ── Telegram ─────────────────────────────────────────────────────
 import os

@@ -40,28 +40,8 @@ from datetime import datetime, timezone, timedelta
 import requests
 
 import config as cfg
-from indicators import (
-    calc_volume_explosion,
-    calc_close_location_value,
-    calc_rsi,
-    calc_macd,
-    calc_bollinger,
-    calc_atr,
-    calc_obv,
-    calc_stoch_rsi,
-    calc_cmf,
-    calc_williams_r,
-    calc_adl_chaikin,
-    calc_donchian,
-    calc_linear_regression,
-    calc_trend,
-    calc_golden_death_cross,
-    calc_rsi_divergence,
-    calc_macd_divergence,
-    calc_relative_strength,
-    htf_confirmation,
-    build_score,
-)
+from indicators import calc_volume_explosion, calc_rsi, calc_trend
+from engine import evaluate_candidate, append_trade_log
 from news import (
     fetch_fear_greed,
     fetch_latest_news,
@@ -410,22 +390,29 @@ def analyze_symbol(exchange, symbol: str, cryptocom=None,
             return None
         candles = ohlcv_to_dicts(raw_15m)
 
-        # ── GATE: volume explosion required first ──
-        explosion, vol_ratio, price_chg_pct = calc_volume_explosion(candles)
-        if not explosion:
-            return None
+        # ── Higher-TF (1h) candles, for the shared engine's golden-cross/HTF check ──
+        candles_1h = None
+        try:
+            raw_1h = exchange.fetch_ohlcv(symbol, timeframe=cfg.TIMEFRAME_CONFIRM, limit=cfg.CANDLES_CONFIRM)
+            candles_1h = ohlcv_to_dicts(raw_1h)
+        except Exception:
+            pass
 
-        # ── GATE: volume direction confirmation ──
-        # A volume spike alone isn't a buy signal — it has to be BUYING
-        # volume. We check two things: (1) where the candle closed within
-        # its range (VSA-style), and (2) the actual taker buy/sell split
-        # from recent trades.
-        clv = calc_close_location_value(candles)
-        if clv is not None and clv < cfg.MIN_CLV:
-            log(f"  🚫 {symbol} vol={vol_ratio}x but CLV={clv} — closed near the low, "
+        # ── Shared OHLCV-only scoring pass (identical code path used by the backtester) ──
+        result = evaluate_candidate(candles, candles_1h=candles_1h,
+                                    btc_candles_15m=btc_candles, coin_news=coin_news)
+        if result is None:
+            return None   # volume-explosion / CLV gate failed
+        vol_ratio = result["vol_ratio"]
+
+        if result["clv"] is not None and result["clv"] < cfg.MIN_CLV:
+            log(f"  🚫 {symbol} vol={vol_ratio}x but CLV={result['clv']} — closed near the low, "
                 f"likely selling/distribution. Skipped.")
             return None
 
+        # ── GATE: live-only volume direction confirmation (taker buy/sell split) ──
+        # A volume spike alone isn't a buy signal — it has to be BUYING volume.
+        # This needs live trade data, so it can't be replayed in the backtester.
         buy_ratio = calc_taker_buy_ratio(exchange, symbol)
         if buy_ratio is not None and buy_ratio < cfg.MIN_TAKER_BUY_RATIO:
             log(f"  🚫 {symbol} vol={vol_ratio}x but taker buy_ratio={buy_ratio} — "
@@ -445,78 +432,9 @@ def analyze_symbol(exchange, symbol: str, cryptocom=None,
                 f"— breakout likely to get rejected. Skipped.")
             return None
 
-        # ── All indicators ──
-        rsi_val  = calc_rsi(candles)
-        macd_val = calc_macd(candles)
-        bb_val   = calc_bollinger(candles)
-        atr_val  = calc_atr(candles)
-        obv_val  = calc_obv(candles)
-        adl_val  = calc_adl_chaikin(candles)
-        don_val  = calc_donchian(candles)
-        reg_val  = calc_linear_regression(candles)
-        trend    = calc_trend(candles)
-        stoch    = calc_stoch_rsi(candles)
-        cmf_val  = calc_cmf(candles)
-        will_r   = calc_williams_r(candles)
-
-        # ── Higher-TF (1h) confirmation + Golden/Death Cross (50/200 EMA) ──
-        htf = {"bullish": False, "trend": "unknown", "rsi": None}
-        golden_cross = {"event": "none", "fast_ma": None, "slow_ma": None,
-                        "trend": "unknown", "bars_since_cross": None}
-        try:
-            raw_1h     = exchange.fetch_ohlcv(symbol, timeframe=cfg.TIMEFRAME_CONFIRM, limit=cfg.CANDLES_CONFIRM)
-            candles_1h = ohlcv_to_dicts(raw_1h)
-            htf = htf_confirmation(candles_1h)
-            if cfg.USE_GOLDEN_CROSS:
-                golden_cross = calc_golden_death_cross(candles_1h)
-        except Exception:
-            pass
-
-        # ── Momentum divergence (RSI + MACD vs price, 15m) ──
-        rsi_div  = {"bullish": False, "bearish": False, "detail": None}
-        macd_div = {"bullish": False, "bearish": False, "detail": None}
-        if cfg.USE_DIVERGENCE_DETECTION:
-            rsi_div  = calc_rsi_divergence(candles)
-            macd_div = calc_macd_divergence(candles)
-
-        # ── Relative strength vs BTC ──
-        rel_strength = None
-        if cfg.USE_RELATIVE_STRENGTH and btc_candles:
-            rel_strength = calc_relative_strength(candles, btc_candles, lookback=cfg.RS_LOOKBACK)
-
-        # ── Composite score ──
-        score, reasons = build_score(
-            vol_ratio=vol_ratio,
-            price_chg_pct=price_chg_pct,
-            rsi=rsi_val,
-            macd=macd_val,
-            bb=bb_val,
-            donchian=don_val,
-            lin_reg=reg_val,
-            trend=trend,
-            adl_chai=adl_val,
-            obv=obv_val,
-            htf=htf,
-            golden_cross=golden_cross,
-            rsi_div=rsi_div,
-            macd_div=macd_div,
-            rel_strength=rel_strength,
-            coin_news=coin_news,
-        )
-
-        # Append extra indicator summaries to reasons (informational)
-        extra = []
-        if stoch.get("k") is not None:
-            extra.append(f"StochRSI K={stoch['k']} ({stoch['zone']})")
-        if cmf_val is not None:
-            extra.append(f"CMF={cmf_val} ({'▲ buy' if cmf_val > 0 else '▼ sell'})")
-        if will_r is not None:
-            extra.append(f"Williams%R={will_r}")
-        if extra:
-            reasons.append("ℹ️  " + "  |  ".join(extra))
-
-        if clv is not None or buy_ratio is not None:
-            clv_str = f"CLV={clv}" if clv is not None else "CLV=n/a"
+        reasons = result["reasons"]
+        if result["clv"] is not None or buy_ratio is not None:
+            clv_str = f"CLV={result['clv']}" if result["clv"] is not None else "CLV=n/a"
             buy_str = f"Buy ratio={buy_ratio}" if buy_ratio is not None else "Buy ratio=n/a"
             reasons.append(f"✅ Volume confirmed buy-side ({clv_str} | {buy_str})")
 
@@ -527,31 +445,24 @@ def analyze_symbol(exchange, symbol: str, cryptocom=None,
         if ob is not None:
             reasons.append(f"✅ Order book clear (bid_ratio={ob['bid_ratio']}, ±{int(cfg.ORDER_BOOK_DEPTH_PCT*100)}% depth)")
 
-        if score < cfg.SCORE_THRESHOLD:
+        if result["score"] < cfg.SCORE_THRESHOLD:
             return None
-
-        # ── Risk Management (ATR-based) ──
-        price = candles[-1]["close"]
-        sl = tp1 = tp2 = None
-        if atr_val is not None:
-            sl  = price - 1.5 * atr_val
-            tp1 = price + 2.0 * atr_val
-            tp2 = price + 3.5 * atr_val
 
         return {
             "symbol":        symbol,
-            "score":         score,
-            "price":         price,
+            "score":         result["score"],
+            "price":         result["price"],
             "vol_ratio":     vol_ratio,
-            "price_chg_pct": price_chg_pct,
+            "price_chg_pct": result["price_chg_pct"],
             "reasons":       reasons,
-            "atr":           atr_val,
-            "sl":            sl,
-            "tp1":           tp1,
-            "tp2":           tp2,
-            "htf_confirmed": htf.get("bullish", False),
-            "golden_cross":  golden_cross,
-            "rel_strength":  rel_strength,
+            "atr":           result["atr"],
+            "sl":            result["sl"],
+            "tp1":           result["tp1"],
+            "tp2":           result["tp2"],
+            "htf_confirmed": result["htf_confirmed"],
+            "golden_cross":  result["golden_cross"],
+            "rel_strength":  result["rel_strength"],
+            "components":    result["components"],
         }
 
     except ccxt.BaseError as e:
@@ -621,23 +532,45 @@ def process_pending_outcomes(exchange, state: dict) -> list:
     for p in pending:
         age_hours = (datetime.now(timezone.utc) - datetime.fromisoformat(p["alert_time"])).total_seconds() / 3600
         outcome = evaluate_outcome(exchange, p)
+        final_outcome = None
 
         if outcome == "sl_hit":
             stats["losses"] += 1
             resolved.append(f"❌ {p['symbol']}: SL hit (score {p['score']})")
+            final_outcome = "sl_hit"
         elif outcome in ("tp1_hit", "tp2_hit"):
             stats["wins"] += 1
             label = "TP2" if outcome == "tp2_hit" else "TP1"
             resolved.append(f"✅ {p['symbol']}: {label} hit (score {p['score']})")
+            final_outcome = outcome
         elif outcome == "open":
             if age_hours < OUTCOME_EXPIRY_HOURS:
                 still_open.append(p)
             else:
                 stats["expired"] += 1
                 resolved.append(f"⌛ {p['symbol']}: expired, no level hit (score {p['score']})")
+                final_outcome = "expired"
         else:  # 'error' — retry next cycle, but don't track forever
             if age_hours < OUTCOME_EXPIRY_HOURS:
                 still_open.append(p)
+
+        if final_outcome:
+            try:
+                append_trade_log({
+                    "symbol":        p["symbol"],
+                    "alert_time":    p["alert_time"],
+                    "resolved_time": datetime.now(timezone.utc).isoformat(),
+                    "score":         p["score"],
+                    "entry":         p.get("entry"),
+                    "sl":            p.get("sl"),
+                    "tp1":           p.get("tp1"),
+                    "tp2":           p.get("tp2"),
+                    "outcome":       final_outcome,
+                    "components":    p.get("components", {}),
+                    "source":        "live",
+                })
+            except Exception as e:
+                log(f"  ⚠️  failed to write trade log entry for {p['symbol']}: {e}")
 
     if resolved:
         total = stats["wins"] + stats["losses"]
@@ -821,6 +754,7 @@ def main():
             "sl":         a["sl"],
             "tp1":        a["tp1"],
             "tp2":        a["tp2"],
+            "components": a.get("components", {}),
         })
         sent += 1
         time.sleep(1)   # small delay between Telegram messages

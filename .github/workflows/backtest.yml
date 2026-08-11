@@ -1,0 +1,89 @@
+name: Pre-Breakout Scanner — Backtest & Self-Tune
+
+on:
+  schedule:
+    # Weekly, Sunday 03:00 UTC — well clear of the 15-minute scan workflow.
+    - cron: "0 3 * * 0"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write        # commit the updated trade log, push the auto-tune branch
+  pull-requests: write   # open/update the auto-tune PR
+
+concurrency:
+  group: pre-breakout-scanner-backtest
+  cancel-in-progress: false
+
+jobs:
+  backtest-and-tune:
+    name: "Backtest + Self-Tune"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run historical backtest
+        run: python backtest.py 2>&1 | tee backtest_output.log
+
+      - name: Upload backtest log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backtest-log-${{ github.run_number }}
+          path: backtest_output.log
+          retention-days: 14
+
+      - name: Commit updated trade log
+        run: |
+          git config user.name  "pre-breakout-bot"
+          git config user.email "actions@github.com"
+          git add state/trade_log.jsonl
+          git diff --quiet --cached || git commit -m "chore: append backtest results to trade log [skip ci]"
+          git pull --rebase origin main
+          git push
+
+      - name: Run self-tuning analysis
+        run: python tuner.py --apply
+
+      - name: Open or update auto-tune PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name  "pre-breakout-bot"
+          git config user.email "actions@github.com"
+
+          if git diff --quiet config.py; then
+            echo "No tuning changes met the confidence bar this run — nothing to propose."
+            exit 0
+          fi
+
+          BRANCH="auto-tune-suggestions"
+          git checkout -B "$BRANCH"
+          git add config.py state/tuning_report.md
+          git commit -m "chore: weekly self-tuning suggestions from backtest results"
+          git push -f origin "$BRANCH"
+
+          if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
+            gh pr edit "$BRANCH" --body-file state/tuning_report.md
+            echo "Updated existing auto-tune PR."
+          else
+            gh pr create --base main --head "$BRANCH" \
+              --title "Weekly self-tuning: adjust weights based on backtest results" \
+              --body-file state/tuning_report.md
+            echo "Opened new auto-tune PR."
+          fi

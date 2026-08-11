@@ -22,6 +22,24 @@ v2 had a real problem: alerts tended to fire *after* a coin had already pumped a
 
 All of it uses **free, keyless APIs** (alternative.me Fear & Greed Index, CryptoCompare public news) — no new secrets or signups required.
 
+## Backtesting & Self-Tuning (the learning loop)
+
+A separate weekly workflow (`backtest.yml`) closes the loop: it replays the **exact same scoring logic** the live scanner uses against real historical KuCoin data, resolves every simulated signal against its own future candles (deterministically, since it's history), and logs the result. Combined with live results (the scanner already tracks whether every real alert's SL/TP1/TP2 got hit), this builds up a growing dataset of "what actually worked."
+
+- **`engine.py`** — the OHLCV-only scoring logic, factored out so live scanning and backtesting call the *identical* code path. No drift between what's backtested and what's live.
+- **`backtest.py`** — walks forward through ~30 days of history across the top-volume symbols, bar by bar, recording every candidate and its eventual outcome to `state/trade_log.jsonl`.
+- **`tuner.py`** — reads the accumulated trade log and asks, per signal: *does this component actually correlate with wins?* Only trusts a component once there's enough sample size in both the "present" and "absent" groups (default 20+ each) — no tuning off a handful of trades. It also sweeps `SCORE_THRESHOLD` to see if a different bar would have produced a better win rate.
+
+**Nothing self-modifies without review.** The weekly workflow commits the new trade-log data straight to `main` (it's just accumulated data), but any suggested change to `config.py`'s weights or threshold goes out as a **pull request** with the full analysis in the description — a human still signs off before it changes what real alerts look like. Run it manually any time with:
+
+```
+python backtest.py      # replay history, append to state/trade_log.jsonl
+python tuner.py          # report only, no changes
+python tuner.py --apply  # writes suggested changes into config.py (for review before committing)
+```
+
+Known limitation: the backtest can't replay the live-only microstructure gates (taker buy/sell ratio, order book imbalance, cross-exchange validation) since those need live data that doesn't exist historically — so it's directionally useful, not a byte-for-byte simulation of what live alerts would have fired.
+
 ## What's New in v2
 
 | Feature | v1 | v2 |
@@ -128,16 +146,22 @@ That's it. The system runs automatically every 15 minutes from now on.
 
 ```
 pre-breakout-scanner/
-├── scanner.py          ← Main orchestrator
+├── scanner.py          ← Main orchestrator (live, every 15 min)
+├── engine.py           ← Shared scoring logic — used by scanner.py AND backtest.py
+├── backtest.py         ← Historical replay engine (weekly)
+├── tuner.py            ← Reads trade_log.jsonl, suggests weight/threshold changes
 ├── indicators.py       ← All TA indicators, incl. golden/death cross, divergence, relative strength
 ├── news.py             ← Fear & Greed + keyless news sentiment (CryptoCompare, alternative.me)
 ├── config.py           ← All tunable parameters in one place
 ├── requirements.txt    ← Only 2 dependencies: ccxt + requests
 ├── state/
-│   └── known_symbols.json   ← Auto-updated each run (tracks symbols + cooldowns)
+│   ├── known_symbols.json   ← Auto-updated each run (tracks symbols + cooldowns)
+│   ├── trade_log.jsonl      ← Every resolved trade, live + backtest (the learning data)
+│   └── tuning_report.md     ← Latest self-tuning analysis (regenerated weekly)
 └── .github/
     └── workflows/
-        └── scan.yml    ← GitHub Actions definition
+        ├── scan.yml         ← Live scanner, every 15 minutes
+        └── backtest.yml     ← Backtest + self-tune, weekly (opens a PR for review)
 ```
 
 ---
