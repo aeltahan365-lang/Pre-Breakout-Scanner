@@ -390,6 +390,14 @@ def analyze_symbol(exchange, symbol: str, cryptocom=None,
             return None
         candles = ohlcv_to_dicts(raw_15m)
 
+        # ── GATE: volume explosion required first (cheap, no extra API call) ──
+        # Checked here too, ahead of the 1h fetch below, so the 1h call only
+        # happens for the small subset of symbols that actually have a shot —
+        # not all ~850 pairs every cycle.
+        explosion, _, _ = calc_volume_explosion(candles)
+        if not explosion:
+            return None
+
         # ── Higher-TF (1h) candles, for the shared engine's golden-cross/HTF check ──
         candles_1h = None
         try:
