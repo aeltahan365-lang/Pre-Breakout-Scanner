@@ -28,6 +28,7 @@
     "AIN/USDT",
     "AIO/USDT",
     "AIOZ/USDT",
+    "AIR/USDT",
     "AIXBT/USDT",
     "AKE/USDT",
     "AKITA/USDT",
@@ -857,7 +858,7 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-12T07:24:36.517124+00:00",
+  "last_run": "2026-08-12T08:51:19.229342+00:00",
   "alert_history": {},
   "stats": {
     "wins": 79,
