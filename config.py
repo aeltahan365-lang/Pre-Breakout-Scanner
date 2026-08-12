@@ -103,6 +103,19 @@ NEWS_LOOKBACK_HOURS          = 24    # coin-specific negative catalyst window (h
 NEWS_MARKET_LOOKBACK_HOURS   = 12    # market-wide negative catalyst window (pauses the whole cycle)
 WEIGHT_POSITIVE_NEWS         = 5     # coin has a recent positive catalyst headline
 
+# ── News-Catalyst Alerts ──────────────────────────────────────────
+# A SEPARATE, lighter-weight pathway from the main volume-spike pipeline
+# above. The main pipeline requires price/volume to have ALREADY moved
+# before news even factors in (news is just a bonus/veto there). This path
+# makes news the PRIMARY trigger: a fresh positive headline plus only a
+# modest confirming price/volume reaction is enough to alert — the whole
+# point is to catch a coin because of the catalyst, not after the crowd
+# has already piled in and the 3.5x volume gate finally trips.
+USE_NEWS_CATALYST_ALERTS       = True
+NEWS_CATALYST_MAX_AGE_HOURS    = 6     # only act on genuinely fresh headlines
+NEWS_CATALYST_MIN_VOL_RATIO    = 1.5   # much lower bar than VOLUME_SPIKE_RATIO (3.5) — news is the trigger, not volume
+MAX_NEWS_CATALYST_ALERTS_PER_RUN = 5
+
 # ── Scoring Thresholds ───────────────────────────────────────────
 SCORE_THRESHOLD         = 65    # minimum score to send alert (0-100)
 HTF_CONFIRM_BONUS       =  5    # added if 1h also looks bullish

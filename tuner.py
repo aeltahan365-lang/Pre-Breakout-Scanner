@@ -87,9 +87,13 @@ def analyze_components(resolved: list) -> list:
 
 
 def sweep_thresholds(resolved: list) -> list:
+    # Only trades with a numeric composite score are relevant here — e.g.
+    # news-catalyst trades (components={"news_catalyst": True}) don't go
+    # through build_score and are logged with score=None.
+    scored = [t for t in resolved if isinstance(t.get("score"), (int, float))]
     rows = []
     for th in cfg.TUNER_THRESHOLD_SWEEP:
-        subset = [t for t in resolved if t.get("score", 0) >= th]
+        subset = [t for t in scored if t["score"] >= th]
         wr, n, wins, losses = _win_rate(subset)
         rows.append({"threshold": th, "n": n, "win_rate": round(wr * 100, 1) if wr is not None else None,
                     "wins": wins, "losses": losses})

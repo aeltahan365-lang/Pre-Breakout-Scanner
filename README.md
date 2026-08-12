@@ -17,10 +17,17 @@ v2 had a real problem: alerts tended to fire *after* a coin had already pumped a
 | Coin-specific negative news (hack/delist/lawsuit) | ❌ | ✅ hard-blocks the alert |
 | Market-wide risk-off news | ❌ | ✅ pauses the whole scan cycle |
 | Positive news catalyst | ❌ | ✅ small score bonus |
+| News-Catalyst Alerts (news as the *primary* trigger) | ❌ | ✅ separate `📰 NEWS CATALYST` pathway |
 | "Early move" bonus window | 0.3–8% | **0.3–3%** (tightened — 8% is often already most of the move) |
 | Donchian breakout weight | 10 pts | **6 pts** (most lagging signal in the suite, downweighted) |
 
 All of it uses **free, keyless APIs** (alternative.me Fear & Greed Index, CryptoCompare public news) — no new secrets or signups required.
+
+### News-Catalyst Alerts (news as the trigger, not just a filter)
+
+Everything above still requires price/volume to move *first* — news only adjusts the score of a candidate the volume-spike gate already found. That's backwards for genuine news-driven moves: by the time a coin has already spiked 3.5x, the catalyst has often been priced in.
+
+News-Catalyst Alerts are a separate, independent pass: a fresh (within `NEWS_CATALYST_MAX_AGE_HOURS`, default 6h) positive headline — partnership, listing, mainnet launch, upgrade, adoption, ETF approval, institutional inflow, buyback, token burn, airdrop — plus just a **modest** confirming reaction (`NEWS_CATALYST_MIN_VOL_RATIO`, default 1.5x average volume, vs. 3.5x for the main pipeline) is enough to fire on its own. These are tagged `📰 NEWS CATALYST` in Telegram and explicitly marked as a separate, less-confirmed signal type — they skip the full institutional scoring suite, so treat them as an earlier/rawer heads-up, not a high-conviction signal like the main alerts.
 
 ## Backtesting & Self-Tuning (the learning loop)
 

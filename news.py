@@ -111,6 +111,38 @@ def check_coin_news(base_symbol: str, news_items: list, max_age_hours: int) -> d
     return {"negative": negative, "positive": positive, "headline": headline}
 
 
+def match_symbols_to_news(symbols: list, news_items: list, max_age_hours: int) -> dict:
+    """
+    Scans news_items for POSITIVE-keyword headlines mentioning any of the
+    given symbols' base tickers within max_age_hours. This is what powers
+    the news-catalyst alert path: news as the trigger, not just a filter.
+
+    Returns {base_symbol: {"headline", "url", "published_on"}} — first
+    (most recent, since CryptoCompare returns newest-first) positive match
+    per symbol.
+    """
+    cutoff = time.time() - max_age_hours * 3600
+    bases = {s.split("/")[0] for s in symbols}
+    matches = {}
+    for item in news_items:
+        if item["published_on"] < cutoff:
+            continue
+        blob = f"{item['title']} {item.get('categories', '')}"
+        low = blob.lower()
+        if not any(kw in low for kw in POSITIVE_KEYWORDS):
+            continue
+        for base in bases:
+            if base in matches:
+                continue
+            if _mentions_coin(blob, base):
+                matches[base] = {
+                    "headline": item["title"],
+                    "url": item.get("url"),
+                    "published_on": item["published_on"],
+                }
+    return matches
+
+
 def check_market_wide_news(news_items: list, max_age_hours: int) -> dict:
     """
     Looks for high-impact, market-wide negative headlines (not coin-specific).

@@ -40,13 +40,14 @@ from datetime import datetime, timezone, timedelta
 import requests
 
 import config as cfg
-from indicators import calc_volume_explosion, calc_rsi, calc_trend
+from indicators import calc_volume_explosion, calc_rsi, calc_trend, calc_atr
 from engine import evaluate_candidate, append_trade_log
 from news import (
     fetch_fear_greed,
     fetch_latest_news,
     check_coin_news,
     check_market_wide_news,
+    match_symbols_to_news,
 )
 
 
@@ -219,6 +220,92 @@ def format_alert(data: dict) -> str:
     lines += [
         f"",
         f'📈 <a href="{tv_link}">Open on TradingView</a>',
+        f"<i>KuCoin • {datetime.now(timezone.utc).strftime('%H:%M UTC')}</i>",
+    ]
+    return "\n".join(lines)
+
+
+# ─────────────────────────────────────────────────────────────────
+# NEWS-CATALYST ALERTS — news as the trigger, not just a filter
+# ─────────────────────────────────────────────────────────────────
+
+def analyze_news_catalyst(exchange, symbol: str, news_info: dict) -> dict | None:
+    """
+    Lighter-weight check for a news-driven candidate: instead of requiring
+    the main pipeline's full 3.5x volume explosion, this only confirms the
+    coin is showing SOME positive price/volume reaction to a fresh positive
+    headline. News is the trigger here — the price/volume check is just
+    confirmation it isn't a dead story nobody's trading on.
+    """
+    try:
+        raw = exchange.fetch_ohlcv(symbol, timeframe=cfg.TIMEFRAME_PRIMARY, limit=cfg.VOLUME_LOOKBACK + 5)
+        if not raw or len(raw) < cfg.VOLUME_LOOKBACK + 2:
+            return None
+        candles = ohlcv_to_dicts(raw)
+        lookback = candles[-(cfg.VOLUME_LOOKBACK + 1):-1]
+        avg_vol = sum(c["volume"] for c in lookback) / len(lookback) if lookback else 0
+        cur = candles[-1]
+        vol_ratio = (cur["volume"] / avg_vol) if avg_vol > 0 else 0
+        price_chg = ((cur["close"] - cur["open"]) / cur["open"] * 100) if cur["open"] else 0
+        if vol_ratio < cfg.NEWS_CATALYST_MIN_VOL_RATIO or price_chg <= 0:
+            return None
+
+        atr_val = calc_atr(candles) if len(candles) > cfg.ATR_PERIOD else None
+        price = cur["close"]
+        sl = tp1 = tp2 = None
+        if atr_val is not None:
+            sl  = price - 1.5 * atr_val
+            tp1 = price + 2.0 * atr_val
+            tp2 = price + 3.5 * atr_val
+
+        return {
+            "symbol":        symbol,
+            "price":         price,
+            "vol_ratio":     round(vol_ratio, 2),
+            "price_chg_pct": round(price_chg, 2),
+            "headline":      news_info["headline"],
+            "url":           news_info.get("url"),
+            "atr":           atr_val,
+            "sl":            sl,
+            "tp1":           tp1,
+            "tp2":           tp2,
+        }
+    except Exception as e:
+        log(f"  ⚠️  news-catalyst check failed for {symbol}: {e}")
+        return None
+
+
+def format_news_catalyst_alert(data: dict) -> str:
+    sym  = data["symbol"]
+    base = sym.replace("/USDT", "").replace(":", "_")
+    price, sl, tp1, tp2 = data["price"], data.get("sl"), data.get("tp1"), data.get("tp2")
+    tv_link = cfg.TV_BASE.format(exchange="KUCOIN", base=base)
+
+    lines = [
+        f"📰 <b>NEWS CATALYST — {sym}</b>",
+        f"",
+        f"💰 Price:  <code>{price}</code>",
+        f"📊 Volume: <b>{data['vol_ratio']}x</b> avg  |  Candle: <b>{data['price_chg_pct']:+.2f}%</b>",
+        f"",
+        f"<b>Headline:</b> {data['headline']}",
+    ]
+    if data.get("url"):
+        lines.append(f'<a href="{data["url"]}">Read more</a>')
+
+    if sl is not None and tp1 is not None:
+        lines += [
+            f"",
+            f"📐 <b>Risk Management</b>",
+            f"  🔴 Stop Loss:  <code>{round(sl, 8)}</code>",
+            f"  🟡 Target 1:   <code>{round(tp1, 8)}</code>",
+        ]
+        if tp2:
+            lines.append(f"  🟢 Target 2:   <code>{round(tp2, 8)}</code>")
+
+    lines += [
+        f"",
+        f'📈 <a href="{tv_link}">Open on TradingView</a>',
+        f"<i>News-driven — NOT the volume-spike pipeline. Confirm before sizing.</i>",
         f"<i>KuCoin • {datetime.now(timezone.utc).strftime('%H:%M UTC')}</i>",
     ]
     return "\n".join(lines)
@@ -770,13 +857,49 @@ def main():
     if sent == 0 and not is_first_run and not new_listings:
         log("💤 No qualifying signals this cycle — Telegram silent")
 
+    # ── News-Catalyst pass — news as the trigger, not just a filter on ──
+    # ── the volume-spike pipeline above. Separate cooldown-respecting scan. ──
+    news_catalyst_sent = 0
+    if cfg.USE_NEWS_CATALYST_ALERTS and cfg.USE_NEWS_FILTER and news_items and not market_news_risk_off:
+        catalyst_matches = match_symbols_to_news(usdt_symbols, news_items,
+                                                  max_age_hours=cfg.NEWS_CATALYST_MAX_AGE_HOURS)
+        for base, news_info in catalyst_matches.items():
+            if news_catalyst_sent >= cfg.MAX_NEWS_CATALYST_ALERTS_PER_RUN:
+                break
+            symbol = f"{base}/{cfg.QUOTE}"
+            if symbol not in current_symbols or is_on_cooldown(symbol, alert_history):
+                continue
+            result = analyze_news_catalyst(kucoin, symbol, news_info)
+            if result is None:
+                time.sleep(cfg.RATE_LIMIT_SLEEP)
+                continue
+            msg = format_news_catalyst_alert(result)
+            send_telegram(msg)
+            alert_history[symbol] = datetime.now(timezone.utc).isoformat()
+            if result.get("sl") is not None:
+                state.setdefault("pending_outcomes", []).append({
+                    "symbol":     symbol,
+                    "alert_time": datetime.now(timezone.utc).isoformat(),
+                    "score":      None,
+                    "entry":      result["price"],
+                    "sl":         result["sl"],
+                    "tp1":        result["tp1"],
+                    "tp2":        result["tp2"],
+                    "components": {"news_catalyst": True},
+                })
+            news_catalyst_sent += 1
+            log(f"  📰 NEWS CATALYST: {symbol} — {news_info['headline'][:80]}")
+            time.sleep(cfg.RATE_LIMIT_SLEEP)
+
+        log(f"📰 News-catalyst pass: {len(catalyst_matches)} headline match(es), {news_catalyst_sent} alert(s) sent")
+
     # Summary ping (every cycle, silent notification)
     btc_rsi_str = f"RSI {btc_ctx['rsi']}" if btc_ctx["rsi"] else ""
     fng_str = f" | F&G: {fng['value']} ({fng['classification']})" if fng else ""
     pause_str = " | ⏸️ paused (news risk-off)" if market_news_risk_off else ""
     summary = (
         f"🔍 Scan complete — {checked} pairs checked\n"
-        f"Signals: {sent} | BTC: {btc_ctx['trend']} {btc_rsi_str}{fng_str}{pause_str}\n"
+        f"Signals: {sent} | News catalysts: {news_catalyst_sent} | BTC: {btc_ctx['trend']} {btc_rsi_str}{fng_str}{pause_str}\n"
         f"<i>{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</i>"
     )
     send_telegram(summary, silent=True)
