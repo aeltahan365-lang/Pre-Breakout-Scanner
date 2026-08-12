@@ -25,6 +25,9 @@ import requests
 FNG_URL         = "https://api.alternative.me/fng/?limit=1"
 NEWS_URL        = "https://min-api.cryptocompare.com/data/v2/news/?lang=EN"
 REQUEST_TIMEOUT = 10
+# Some APIs bot-block the bare `requests` default User-Agent; this is a
+# cheap, safe defensive header regardless of root cause.
+REQUEST_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; PreBreakoutScanner/1.0)"}
 
 NEGATIVE_KEYWORDS = [
     "hack", "hacked", "exploit", "exploited", "drain", "drained", "rug pull",
@@ -50,20 +53,30 @@ MARKET_WIDE_NEGATIVE_KEYWORDS = [
 def fetch_fear_greed() -> dict | None:
     """Returns {'value': int 0-100, 'classification': str} or None on failure."""
     try:
-        resp = requests.get(FNG_URL, timeout=REQUEST_TIMEOUT)
+        resp = requests.get(FNG_URL, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         data = resp.json()["data"][0]
         return {"value": int(data["value"]), "classification": data["value_classification"]}
-    except Exception:
+    except Exception as e:
+        print(f"[news.py] fetch_fear_greed failed: {type(e).__name__}: {e}")
         return None
 
 
 def fetch_latest_news(limit: int = 50) -> list:
-    """Returns a list of {'title','body','categories','published_on','url'}, or [] on failure."""
+    """Returns a list of {'title','body','categories','published_on','url'}, or [] on failure.
+    Prints diagnostics on any failure — this endpoint has silently returned
+    empty results in production before, with no way to tell why from the
+    scanner's own logs, so surface the actual cause here."""
     try:
-        resp = requests.get(NEWS_URL, timeout=REQUEST_TIMEOUT)
+        resp = requests.get(NEWS_URL, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT)
+        print(f"[news.py] CryptoCompare news request: HTTP {resp.status_code}")
         resp.raise_for_status()
-        items = resp.json().get("Data", [])[:limit]
+        payload = resp.json()
+        items = payload.get("Data", [])[:limit]
+        if not items:
+            print(f"[news.py] CryptoCompare returned 0 items. Response keys: {list(payload.keys())}. "
+                  f"Message/Type: {payload.get('Message')!r} / {payload.get('Type')!r}. "
+                  f"Body snippet: {str(payload)[:300]}")
         return [
             {
                 "title":        it.get("title", ""),
@@ -74,7 +87,11 @@ def fetch_latest_news(limit: int = 50) -> list:
             }
             for it in items
         ]
-    except Exception:
+    except requests.exceptions.HTTPError as e:
+        print(f"[news.py] fetch_latest_news HTTP error: {e} — body snippet: {getattr(e.response, 'text', '')[:300]}")
+        return []
+    except Exception as e:
+        print(f"[news.py] fetch_latest_news failed: {type(e).__name__}: {e}")
         return []
 
 
