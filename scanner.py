@@ -751,6 +751,13 @@ def main():
         log(f"🌡️  Fear & Greed Index: {fng['value']} ({fng['classification']})")
 
     news_items = fetch_latest_news() if cfg.USE_NEWS_FILTER else []
+    if cfg.USE_NEWS_FILTER:
+        if news_items:
+            log(f"📰 Fetched {len(news_items)} news item(s) from CryptoCompare")
+        else:
+            log("⚠️  Fetched 0 news items (CryptoCompare unreachable or empty response) — "
+                "coin/market news gates and catalyst pass are no-ops this cycle")
+
     market_news_risk_off, market_news_headline = False, None
     if cfg.USE_NEWS_FILTER:
         mw = check_market_wide_news(news_items, max_age_hours=cfg.NEWS_MARKET_LOOKBACK_HOURS)
@@ -860,7 +867,13 @@ def main():
     # ── News-Catalyst pass — news as the trigger, not just a filter on ──
     # ── the volume-spike pipeline above. Separate cooldown-respecting scan. ──
     news_catalyst_sent = 0
-    if cfg.USE_NEWS_CATALYST_ALERTS and cfg.USE_NEWS_FILTER and news_items and not market_news_risk_off:
+    if not cfg.USE_NEWS_CATALYST_ALERTS:
+        pass
+    elif market_news_risk_off:
+        log("📰 News-catalyst pass: skipped (market-wide risk-off news this cycle)")
+    elif not news_items:
+        log("📰 News-catalyst pass: skipped (0 news items fetched this cycle)")
+    else:
         catalyst_matches = match_symbols_to_news(usdt_symbols, news_items,
                                                   max_age_hours=cfg.NEWS_CATALYST_MAX_AGE_HOURS)
         for base, news_info in catalyst_matches.items():
