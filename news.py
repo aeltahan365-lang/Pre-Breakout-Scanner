@@ -13,7 +13,13 @@ Lightweight, keyless news/sentiment layer. Goals:
 
 No API keys required:
   - Fear & Greed Index : alternative.me
-  - News               : CryptoCompare public news endpoint
+  - News               : public RSS feeds from major crypto outlets
+
+News used to run on CryptoCompare's min-api news endpoint, but as of
+2026-08 it returns HTTP 401 "API key required" — that provider locked its
+free tier behind registration. Switched to RSS (CoinDesk, Cointelegraph,
+Decrypt, CryptoSlate) since that's genuinely keyless by design and needs
+no new dependency (stdlib XML parsing only).
 
 This is deliberately simple keyword matching, not NLP — it's a blunt
 "is there an obvious red/green flag headline" filter, not a sentiment model.
@@ -21,9 +27,16 @@ This is deliberately simple keyword matching, not NLP — it's a blunt
 
 import time
 import requests
+import xml.etree.ElementTree as ET
+from email.utils import parsedate_to_datetime
 
 FNG_URL         = "https://api.alternative.me/fng/?limit=1"
-NEWS_URL        = "https://min-api.cryptocompare.com/data/v2/news/?lang=EN"
+RSS_FEEDS = [
+    "https://www.coindesk.com/arc/outboundfeeds/rss/",
+    "https://cointelegraph.com/rss",
+    "https://decrypt.co/feed",
+    "https://cryptoslate.com/feed/",
+]
 REQUEST_TIMEOUT = 10
 # Some APIs bot-block the bare `requests` default User-Agent; this is a
 # cheap, safe defensive header regardless of root cause.
@@ -62,37 +75,63 @@ def fetch_fear_greed() -> dict | None:
         return None
 
 
-def fetch_latest_news(limit: int = 50) -> list:
-    """Returns a list of {'title','body','categories','published_on','url'}, or [] on failure.
-    Prints diagnostics on any failure — this endpoint has silently returned
-    empty results in production before, with no way to tell why from the
-    scanner's own logs, so surface the actual cause here."""
+def _parse_rss_date(date_str: str) -> int:
+    """Parses an RSS pubDate (RFC 822, e.g. 'Wed, 12 Aug 2026 18:00:00 GMT') to epoch seconds."""
+    if not date_str:
+        return 0
     try:
-        resp = requests.get(NEWS_URL, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT)
-        print(f"[news.py] CryptoCompare news request: HTTP {resp.status_code}")
+        dt = parsedate_to_datetime(date_str)
+        return int(dt.timestamp())
+    except Exception:
+        return 0
+
+
+def _fetch_rss_feed(url: str, limit: int) -> list:
+    """Fetches and parses one RSS feed into the shared news-item shape.
+    Namespace-agnostic <item> lookup so this works whether or not the feed
+    declares extra XML namespaces (most crypto-news RSS feeds do)."""
+    try:
+        resp = requests.get(url, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
-        payload = resp.json()
-        items = payload.get("Data", [])[:limit]
-        if not items:
-            print(f"[news.py] CryptoCompare returned 0 items. Response keys: {list(payload.keys())}. "
-                  f"Message/Type: {payload.get('Message')!r} / {payload.get('Type')!r}. "
-                  f"Body snippet: {str(payload)[:300]}")
-        return [
-            {
-                "title":        it.get("title", ""),
-                "body":         it.get("body", ""),
-                "categories":   it.get("categories", ""),
-                "published_on": it.get("published_on", 0),
-                "url":          it.get("url", ""),
-            }
-            for it in items
-        ]
-    except requests.exceptions.HTTPError as e:
-        print(f"[news.py] fetch_latest_news HTTP error: {e} — body snippet: {getattr(e.response, 'text', '')[:300]}")
-        return []
+        root = ET.fromstring(resp.content)
+        items = []
+        for el in root.iter():
+            if el.tag.split("}")[-1] != "item":
+                continue
+            title = (el.findtext("title") or "").strip()
+            link = (el.findtext("link") or "").strip()
+            pub_date = el.findtext("pubDate") or ""
+            categories = ",".join(c.text for c in el.findall("category") if c.text)
+            items.append({
+                "title":        title,
+                "body":         "",
+                "categories":   categories,
+                "published_on": _parse_rss_date(pub_date),
+                "url":          link,
+            })
+            if len(items) >= limit:
+                break
+        return items
     except Exception as e:
-        print(f"[news.py] fetch_latest_news failed: {type(e).__name__}: {e}")
+        print(f"[news.py] RSS fetch failed for {url}: {type(e).__name__}: {e}")
         return []
+
+
+def fetch_latest_news(limit: int = 50) -> list:
+    """
+    Aggregates recent crypto news across RSS_FEEDS into the shared shape:
+    {'title','body','categories','published_on','url'}, newest first.
+    Returns [] only if every feed failed — logs each feed's failure via
+    _fetch_rss_feed so a total outage is diagnosable, not silent.
+    """
+    per_feed = max(5, limit // len(RSS_FEEDS))
+    all_items = []
+    for feed_url in RSS_FEEDS:
+        all_items.extend(_fetch_rss_feed(feed_url, per_feed))
+    all_items.sort(key=lambda x: x["published_on"], reverse=True)
+    if not all_items:
+        print("[news.py] All RSS feeds returned 0 items this cycle")
+    return all_items[:limit]
 
 
 def _mentions_coin(text: str, base_symbol: str) -> bool:

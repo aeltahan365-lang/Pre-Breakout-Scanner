@@ -21,7 +21,7 @@ v2 had a real problem: alerts tended to fire *after* a coin had already pumped a
 | "Early move" bonus window | 0.3–8% | **0.3–3%** (tightened — 8% is often already most of the move) |
 | Donchian breakout weight | 10 pts | **6 pts** (most lagging signal in the suite, downweighted) |
 
-All of it uses **free, keyless APIs** (alternative.me Fear & Greed Index, CryptoCompare public news) — no new secrets or signups required.
+All of it uses **free, keyless APIs** (alternative.me Fear & Greed Index, public RSS feeds from CoinDesk/Cointelegraph/Decrypt/CryptoSlate for news) — no new secrets or signups required.
 
 ### News-Catalyst Alerts (news as the trigger, not just a filter)
 
@@ -158,7 +158,7 @@ pre-breakout-scanner/
 ├── backtest.py         ← Historical replay engine (weekly)
 ├── tuner.py            ← Reads trade_log.jsonl, suggests weight/threshold changes
 ├── indicators.py       ← All TA indicators, incl. golden/death cross, divergence, relative strength
-├── news.py             ← Fear & Greed + keyless news sentiment (CryptoCompare, alternative.me)
+├── news.py             ← Fear & Greed + keyless news sentiment (RSS feeds, alternative.me)
 ├── config.py           ← All tunable parameters in one place
 ├── requirements.txt    ← Only 2 dependencies: ccxt + requests
 ├── state/
@@ -186,7 +186,7 @@ All parameters are in **`config.py`**. Key ones:
 | `CROSS_VALIDATE` | True | Set False to skip Binance check (faster) |
 | `MAX_ALERTS_PER_RUN` | 10 | Cap to prevent Telegram flood |
 | `USE_GOLDEN_CROSS` / `USE_DIVERGENCE_DETECTION` / `USE_RELATIVE_STRENGTH` | True | Set False to disable any individual institutional signal |
-| `USE_NEWS_FILTER` / `USE_FEAR_GREED` | True | Set False to disable the news/sentiment layer entirely (no network calls to alternative.me / CryptoCompare) |
+| `USE_NEWS_FILTER` / `USE_FEAR_GREED` | True | Set False to disable the news/sentiment layer entirely (no network calls to alternative.me / news RSS feeds) |
 | `FEAR_GREED_EXTREME_GREED` | 80 | Lower = threshold gets raised sooner during greedy markets |
 | `EARLY_MOVE_MAX_PCT` | 3.0 | Lower = stricter about how "early" a move must still be to get the bonus |
 
@@ -230,7 +230,7 @@ KuCoin • 14:30 UTC
 - **GitHub Actions timing**: Scheduled jobs may be delayed a few minutes during peak hours — this is normal and free.
 - **GitHub free tier**: 2,000 minutes/month for private repos. Each scan takes ~3–5 min → this system uses ~600 min/month (~30% of free quota).
 - **This system is independent** from any Wyckoff/VSA or other system you run — it does not modify any shared state.
-- **News/sentiment sources are free and keyless** (alternative.me, CryptoCompare) — no new GitHub secrets needed. The coin-news and market-wide checks are simple keyword matching, not NLP — treat them as a blunt red/green-flag filter, not a guarantee.
+- **News/sentiment sources are free and keyless** (alternative.me, public RSS feeds) — no new GitHub secrets needed. News originally ran on CryptoCompare's API but that now requires a registered key (HTTP 401 as of 2026-08), so it switched to RSS. The coin-news and market-wide checks are simple keyword matching, not NLP — treat them as a blunt red/green-flag filter, not a guarantee.
 - **A cycle can come back with zero alerts and a "paused" summary ping** — that means market-wide risk-off news was detected and no new longs were evaluated that cycle, by design.
 
 ---
