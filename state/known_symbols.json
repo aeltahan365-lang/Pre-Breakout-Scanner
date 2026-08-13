@@ -858,10 +858,8 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-13T10:05:28.430908+00:00",
-  "alert_history": {
-    "VVV/USDT": "2026-08-13T08:54:25.421017+00:00"
-  },
+  "last_run": "2026-08-13T11:15:24.139927+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 82,
     "losses": 119,
