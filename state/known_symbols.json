@@ -858,42 +858,14 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-13T08:54:26.923105+00:00",
+  "last_run": "2026-08-13T10:05:28.430908+00:00",
   "alert_history": {
-    "HOLO/USDT": "2026-08-13T07:27:17.705755+00:00",
-    "FARTCOIN/USDT": "2026-08-13T07:27:19.051426+00:00",
     "VVV/USDT": "2026-08-13T08:54:25.421017+00:00"
   },
   "stats": {
     "wins": 82,
-    "losses": 118,
+    "losses": 119,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "VVV/USDT",
-      "alert_time": "2026-08-13T08:54:25.421034+00:00",
-      "score": 75,
-      "entry": 12.742,
-      "sl": 12.61768552,
-      "tp1": 12.907752640000002,
-      "tp2": 13.03206712,
-      "components": {
-        "rsi_healthy": false,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": true,
-        "trend_bullish": true,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": false,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": false,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": true
-      }
-    }
-  ]
+  "pending_outcomes": []
 }
