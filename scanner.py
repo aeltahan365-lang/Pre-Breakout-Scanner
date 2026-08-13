@@ -753,9 +753,9 @@ def main():
     news_items = fetch_latest_news() if cfg.USE_NEWS_FILTER else []
     if cfg.USE_NEWS_FILTER:
         if news_items:
-            log(f"📰 Fetched {len(news_items)} news item(s) from CryptoCompare")
+            log(f"📰 Fetched {len(news_items)} news item(s) from RSS feeds")
         else:
-            log("⚠️  Fetched 0 news items (CryptoCompare unreachable or empty response) — "
+            log("⚠️  Fetched 0 news items (RSS feeds unreachable or empty response) — "
                 "coin/market news gates and catalyst pass are no-ops this cycle")
 
     market_news_risk_off, market_news_headline = False, None
