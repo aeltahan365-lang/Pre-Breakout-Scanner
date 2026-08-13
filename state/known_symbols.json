@@ -858,14 +858,66 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-13T05:59:19.375490+00:00",
+  "last_run": "2026-08-13T07:27:20.380687+00:00",
   "alert_history": {
-    "LIGHT/USDT": "2026-08-13T04:25:34.246441+00:00"
+    "HOLO/USDT": "2026-08-13T07:27:17.705755+00:00",
+    "FARTCOIN/USDT": "2026-08-13T07:27:19.051426+00:00"
   },
   "stats": {
     "wins": 82,
     "losses": 116,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "HOLO/USDT",
+      "alert_time": "2026-08-13T07:27:17.705774+00:00",
+      "score": 93,
+      "entry": 0.07105,
+      "sl": 0.07000609,
+      "tp1": 0.07244188,
+      "tp2": 0.07348579,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": true,
+        "donchian_breakout": true,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
+      }
+    },
+    {
+      "symbol": "FARTCOIN/USDT",
+      "alert_time": "2026-08-13T07:27:19.051443+00:00",
+      "score": 65,
+      "entry": 0.1344,
+      "sl": 0.133708215,
+      "tp1": 0.13532238,
+      "tp2": 0.136014165,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": false,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
+      }
+    }
+  ]
 }
