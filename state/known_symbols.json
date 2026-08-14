@@ -858,15 +858,11 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-14T02:12:33.048675+00:00",
-  "alert_history": {
-    "PEAQ/USDT": "2026-08-14T02:12:28.567988+00:00",
-    "TIA/USDT": "2026-08-14T02:12:30.024916+00:00",
-    "PRL/USDT": "2026-08-14T02:12:31.520278+00:00"
-  },
+  "last_run": "2026-08-14T04:22:42.781454+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 84,
-    "losses": 119,
+    "losses": 121,
     "expired": 0
   },
   "pending_outcomes": [
@@ -893,56 +889,6 @@
         "bearish_divergence": false,
         "rs_leading": true,
         "early_move": true
-      }
-    },
-    {
-      "symbol": "TIA/USDT",
-      "alert_time": "2026-08-14T02:12:30.024930+00:00",
-      "score": 87,
-      "entry": 0.3139,
-      "sl": 0.31270268500000004,
-      "tp1": 0.31549642,
-      "tp2": 0.31669373500000003,
-      "components": {
-        "rsi_healthy": true,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": true,
-        "trend_bullish": true,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": false,
-        "golden_cross_bullish": false,
-        "death_cross_active": true,
-        "bullish_divergence": false,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": true
-      }
-    },
-    {
-      "symbol": "PRL/USDT",
-      "alert_time": "2026-08-14T02:12:31.520294+00:00",
-      "score": 67,
-      "entry": 0.306,
-      "sl": 0.30194772,
-      "tp1": 0.31140304,
-      "tp2": 0.31545532,
-      "components": {
-        "rsi_healthy": true,
-        "macd_bullish_cross": true,
-        "bb_squeeze": false,
-        "donchian_breakout": true,
-        "trend_bullish": false,
-        "adl_accumulating": true,
-        "obv_rising": false,
-        "htf_confirmed": false,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": false,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": false
       }
     }
   ]
