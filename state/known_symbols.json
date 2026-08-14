@@ -839,39 +839,40 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-14T09:49:35.636941+00:00",
+  "last_run": "2026-08-14T10:45:39.378512+00:00",
   "alert_history": {
-    "BLUAI/USDT": "2026-08-14T09:49:34.306711+00:00"
+    "BLUAI/USDT": "2026-08-14T09:49:34.306711+00:00",
+    "XPL/USDT": "2026-08-14T10:45:37.912714+00:00"
   },
   "stats": {
     "wins": 85,
-    "losses": 122,
+    "losses": 123,
     "expired": 0
   },
   "pending_outcomes": [
     {
-      "symbol": "BLUAI/USDT",
-      "alert_time": "2026-08-14T09:49:34.306725+00:00",
-      "score": 79,
-      "entry": 0.014245,
-      "sl": 0.01382416,
-      "tp1": 0.01480612,
-      "tp2": 0.015226960000000001,
+      "symbol": "XPL/USDT",
+      "alert_time": "2026-08-14T10:45:37.912732+00:00",
+      "score": 78,
+      "entry": 0.0745,
+      "sl": 0.07407382,
+      "tp1": 0.07506824,
+      "tp2": 0.07549441999999999,
       "components": {
         "rsi_healthy": true,
-        "macd_bullish_cross": true,
-        "bb_squeeze": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
         "donchian_breakout": false,
-        "trend_bullish": true,
+        "trend_bullish": false,
         "adl_accumulating": true,
         "obv_rising": true,
         "htf_confirmed": false,
         "golden_cross_bullish": false,
         "death_cross_active": true,
-        "bullish_divergence": false,
+        "bullish_divergence": true,
         "bearish_divergence": false,
         "rs_leading": true,
-        "early_move": false
+        "early_move": true
       }
     }
   ]
