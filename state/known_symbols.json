@@ -377,6 +377,7 @@
     "KCS/USDT",
     "KERNEL/USDT",
     "KGEN/USDT",
+    "KII/USDT",
     "KITE/USDT",
     "KLINK/USDT",
     "KLV/USDT",
@@ -839,41 +840,14 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-14T12:14:28.697578+00:00",
+  "last_run": "2026-08-14T13:46:53.435793+00:00",
   "alert_history": {
-    "XPL/USDT": "2026-08-14T10:45:37.912714+00:00",
     "ZRO/USDT": "2026-08-14T12:14:27.183370+00:00"
   },
   "stats": {
     "wins": 86,
-    "losses": 123,
+    "losses": 124,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "ZRO/USDT",
-      "alert_time": "2026-08-14T12:14:27.183385+00:00",
-      "score": 82,
-      "entry": 0.7822,
-      "sl": 0.777605155,
-      "tp1": 0.78832646,
-      "tp2": 0.792921305,
-      "components": {
-        "rsi_healthy": true,
-        "macd_bullish_cross": false,
-        "bb_squeeze": true,
-        "donchian_breakout": false,
-        "trend_bullish": false,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": false,
-        "golden_cross_bullish": false,
-        "death_cross_active": true,
-        "bullish_divergence": true,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": true
-      }
-    }
-  ]
+  "pending_outcomes": []
 }
