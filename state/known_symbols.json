@@ -840,10 +840,8 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-15T17:04:20.179289+00:00",
-  "alert_history": {
-    "KCS/USDT": "2026-08-15T15:22:00.288232+00:00"
-  },
+  "last_run": "2026-08-15T17:31:26.635027+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 89,
     "losses": 131,
