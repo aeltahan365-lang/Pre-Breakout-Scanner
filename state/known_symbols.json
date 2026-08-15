@@ -840,12 +840,40 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-15T19:23:24.834421+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-15T19:48:54.816384+00:00",
+  "alert_history": {
+    "ATOM/USDT": "2026-08-15T19:48:53.469714+00:00"
+  },
   "stats": {
     "wins": 89,
     "losses": 132,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "ATOM/USDT",
+      "alert_time": "2026-08-15T19:48:53.469734+00:00",
+      "score": 73,
+      "entry": 1.4719,
+      "sl": 1.467003385,
+      "tp1": 1.47842882,
+      "tp2": 1.483325435,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": false,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": false
+      }
+    }
+  ]
 }
