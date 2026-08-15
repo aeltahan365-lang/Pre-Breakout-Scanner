@@ -41,7 +41,8 @@ import requests
 
 import config as cfg
 from indicators import calc_volume_explosion, calc_rsi, calc_trend, calc_atr
-from engine import evaluate_candidate, append_trade_log
+from engine import evaluate_candidate, evaluate_reversal_candidate, append_trade_log
+from derivatives import get_derivatives_context
 from news import (
     fetch_fear_greed,
     fetch_latest_news,
@@ -136,7 +137,11 @@ def send_telegram(message: str, silent: bool = False):
 
 def format_alert(data: dict) -> str:
     """
-    Build a rich Telegram HTML message for a breakout signal.
+    Build a rich Telegram HTML message for a CONFIRMED BREAKOUT signal —
+    the SECONDARY pipeline (v4). This requires a volume spike that has
+    ALREADY happened, so by the time this fires the move is already
+    underway; the 🔄 BOTTOM REVERSAL alert (format_reversal_alert, below)
+    is the primary, earlier-warning pathway.
     """
     sym      = data["symbol"]
     base     = sym.replace("/USDT", "").replace(":", "_")
@@ -168,7 +173,7 @@ def format_alert(data: dict) -> str:
     htf_tag = "✅ 1h confirms" if htf_ok else "⚠️ 1h unconfirmed"
 
     lines = [
-        f"⚡ <b>PRE-BREAKOUT ALERT — {sym}</b>",
+        f"🚀 <b>CONFIRMED BREAKOUT — {sym}</b>",
         f"Score: <b>{score}/100</b>  {badge}",
         f"",
         f"💰 Price:  <code>{price}</code>",
@@ -220,6 +225,86 @@ def format_alert(data: dict) -> str:
     lines += [
         f"",
         f'📈 <a href="{tv_link}">Open on TradingView</a>',
+        f"<i>Confirmed/secondary signal — the move is already underway. Prefer 🔄 BOTTOM REVERSAL alerts for earlier entries.</i>",
+        f"<i>KuCoin • {datetime.now(timezone.utc).strftime('%H:%M UTC')}</i>",
+    ]
+    return "\n".join(lines)
+
+
+def format_reversal_alert(data: dict) -> str:
+    """
+    Build a rich Telegram HTML message for a BOTTOM REVERSAL signal — the
+    PRIMARY pipeline (v4): the coin is basing near a confirmed decline's
+    low and showing bullish divergence (momentum/volume turning up while
+    price is still flat or making marginal new lows). This fires BEFORE
+    the volume-spike pipeline's 3.5x gate would ever trip, at the cost of
+    being a lower-conviction, earlier-stage signal.
+    """
+    sym      = data["symbol"]
+    base     = sym.replace("/USDT", "").replace(":", "_")
+    score    = data["score"]
+    price    = data["price"]
+    bottom   = data.get("bottom") or {}
+    reasons  = data["reasons"]
+    sl       = data.get("sl")
+    tp1      = data.get("tp1")
+    tp2      = data.get("tp2")
+    rs       = data.get("rel_strength")
+    fng      = data.get("fng")
+    tv_link  = cfg.TV_BASE.format(exchange="KUCOIN", base=base)
+
+    if score >= 85:
+        badge = "🟢🟢🟢 STRONG"
+    elif score >= 75:
+        badge = "🟢🟢 HIGH"
+    elif score >= cfg.REVERSAL_SCORE_THRESHOLD:
+        badge = "🟡 MODERATE"
+    else:
+        badge = "🔵 WATCH"
+
+    pct_from_low = bottom.get("pct_from_low")
+    bars_since_low = bottom.get("bars_since_low")
+    structure_line = (
+        f"{bars_since_low} bars (1h) since the low  |  {pct_from_low:+.2f}% off the base"
+        if pct_from_low is not None else "structure data unavailable"
+    )
+    higher_low_tag = "✅ higher low" if bottom.get("higher_low") else "⚠️ first touch (no higher-low confirmation yet)"
+
+    lines = [
+        f"🔄 <b>BOTTOM REVERSAL — {sym}</b>",
+        f"Score: <b>{score}/100</b>  {badge}",
+        f"",
+        f"💰 Price:  <code>{price}</code>",
+        f"🔻 Structure: {structure_line}",
+        f"📐 {higher_low_tag}",
+    ]
+
+    if sl is not None and tp1 is not None:
+        rr1 = abs((tp1 - price) / (price - sl)) if price != sl else 0
+        rr2 = abs((tp2 - price) / (price - sl)) if tp2 and price != sl else 0
+        lines += [
+            f"",
+            f"📐 <b>Risk Management (structural stop under the base)</b>",
+            f"  🔴 Stop Loss:  <code>{round(sl, 8)}</code>",
+            f"  🟡 Target 1:   <code>{round(tp1, 8)}</code>  (R/R {rr1:.1f}x)",
+        ]
+        if tp2:
+            lines.append(f"  🟢 Target 2:   <code>{round(tp2, 8)}</code>  (R/R {rr2:.1f}x)")
+
+    if rs and rs.get("rs_spread") is not None:
+        arrow = "▲" if rs["leading"] else "▼"
+        lines.append(f"  RS vs BTC: {arrow} {rs['rs_spread']:+.2f}pp  (coin {rs['coin_pct']:+.2f}% | BTC {rs['btc_pct']:+.2f}%)")
+    if fng and fng.get("value") is not None:
+        lines.append(f"  Fear & Greed: {fng['value']} ({fng.get('classification')})")
+
+    lines += [f"", f"<b>Signals:</b>"]
+    for r in reasons:
+        lines.append(f"  {r}")
+
+    lines += [
+        f"",
+        f'📈 <a href="{tv_link}">Open on TradingView</a>',
+        f"<i>Early-stage/primary signal — lower conviction than a confirmed breakout, by design. This is the catch-it-before-it-runs alert; size accordingly.</i>",
         f"<i>KuCoin • {datetime.now(timezone.utc).strftime('%H:%M UTC')}</i>",
     ]
     return "\n".join(lines)
@@ -446,55 +531,114 @@ def calc_order_book_imbalance(exchange, symbol: str,
 # ─────────────────────────────────────────────────────────────────
 # SINGLE SYMBOL ANALYSIS
 # ─────────────────────────────────────────────────────────────────
+# v4 runs TWO independent pipelines per symbol against the SAME fetched
+# candles (fetch once, score twice — no extra API cost for the second
+# pipeline):
+#   1. analyze_symbol_reversal  — PRIMARY.   Is this coin basing near a
+#      confirmed decline's low and diverging (momentum/volume turning up)
+#      BEFORE the big volume candle prints? Catches the setup early.
+#   2. analyze_symbol_breakout  — SECONDARY. Has a volume spike already
+#      fired with healthy indicator confluence? This is the v2/v3 pipeline,
+#      unchanged — kept as a "confirmed, already-moving" pathway, not the
+#      primary trigger anymore.
 
-def analyze_symbol(exchange, symbol: str, cryptocom=None,
-                   btc_candles: list = None, news_items: list = None) -> dict | None:
+def fetch_candle_context(exchange, symbol: str) -> dict | None:
     """
-    Full analysis pipeline for one symbol.
-    Returns alert dict if signal qualifies, else None.
+    Fetches the 15m + 1h candle windows once per symbol — shared by both
+    pipelines below. Returns None if the 24h liquidity gate fails or 15m
+    history is insufficient.
+    """
+    ticker    = exchange.fetch_ticker(symbol)
+    quote_24h = ticker.get("quoteVolume") or 0
+    if quote_24h < cfg.MIN_QUOTE_VOLUME_24H:
+        return None
+
+    raw_15m = exchange.fetch_ohlcv(symbol, timeframe=cfg.TIMEFRAME_PRIMARY, limit=cfg.CANDLES_PRIMARY)
+    if not raw_15m or len(raw_15m) < cfg.VOLUME_LOOKBACK + 10:
+        return None
+    candles_15m = ohlcv_to_dicts(raw_15m)
+
+    # Higher-TF (1h) candles — needed by both pipelines (golden-cross/HTF
+    # check for breakout, bottom-structure detection for reversal).
+    candles_1h = None
+    try:
+        raw_1h = exchange.fetch_ohlcv(symbol, timeframe=cfg.TIMEFRAME_CONFIRM, limit=cfg.CANDLES_CONFIRM)
+        candles_1h = ohlcv_to_dicts(raw_1h)
+    except Exception:
+        pass
+
+    return {"candles_15m": candles_15m, "candles_1h": candles_1h}
+
+
+def analyze_symbol_reversal(exchange, symbol: str, candles_15m: list, candles_1h: list,
+                            futures_exchange=None, btc_candles: list = None,
+                            coin_news: dict = None) -> dict | None:
+    """
+    PRIMARY pipeline (v4): bottom structure + bullish divergence, before
+    any big volume spike has happened. Returns alert dict if signal
+    qualifies, else None.
     """
     try:
-        base = symbol.split("/")[0]
+        result = evaluate_reversal_candidate(candles_15m, candles_1h=candles_1h,
+                                             btc_candles_15m=btc_candles, coin_news=coin_news)
+        if result is None:
+            return None   # no confirmed bottom, or no reversal evidence
 
-        # ── GATE: coin-specific negative news (hack/delist/lawsuit/etc) ──
-        if cfg.USE_NEWS_FILTER and news_items:
-            coin_news = check_coin_news(base, news_items, max_age_hours=cfg.NEWS_LOOKBACK_HOURS)
-            if coin_news.get("negative"):
-                log(f"  🚫 {symbol} blocked — negative news: {coin_news.get('headline')}")
-                return None
-        else:
-            coin_news = None
+        # ── BONUS (live-only): derivatives positioning, only fetched once the
+        # cheap OHLCV-only gate above already qualified the candidate ──
+        if cfg.USE_DERIVATIVES_CONTEXT:
+            derivatives = get_derivatives_context(futures_exchange, symbol)
+            if derivatives:
+                boosted = evaluate_reversal_candidate(candles_15m, candles_1h=candles_1h,
+                                                       btc_candles_15m=btc_candles, coin_news=coin_news,
+                                                       derivatives=derivatives)
+                if boosted is not None:
+                    result = boosted
 
-        # ── Quick 24h volume filter ──
-        ticker      = exchange.fetch_ticker(symbol)
-        quote_24h   = ticker.get("quoteVolume") or 0
-        if quote_24h < cfg.MIN_QUOTE_VOLUME_24H:
+        if result["score"] < cfg.REVERSAL_SCORE_THRESHOLD:
             return None
 
-        # ── Primary candles (15m) ──
-        raw_15m = exchange.fetch_ohlcv(symbol, timeframe=cfg.TIMEFRAME_PRIMARY, limit=cfg.CANDLES_PRIMARY)
-        if not raw_15m or len(raw_15m) < cfg.VOLUME_LOOKBACK + 10:
-            return None
-        candles = ohlcv_to_dicts(raw_15m)
+        return {
+            "symbol":        symbol,
+            "score":         result["score"],
+            "price":         result["price"],
+            "vol_ratio":     result["vol_ratio"],
+            "price_chg_pct": result["price_chg_pct"],
+            "reasons":       result["reasons"],
+            "atr":           result["atr"],
+            "sl":            result["sl"],
+            "tp1":           result["tp1"],
+            "tp2":           result["tp2"],
+            "bottom":        result["bottom"],
+            "golden_cross":  result["golden_cross"],
+            "rel_strength":  result["rel_strength"],
+            "components":    result["components"],
+        }
 
-        # ── GATE: volume explosion required first (cheap, no extra API call) ──
-        # Checked here too, ahead of the 1h fetch below, so the 1h call only
-        # happens for the small subset of symbols that actually have a shot —
-        # not all ~850 pairs every cycle.
-        explosion, _, _ = calc_volume_explosion(candles)
+    except ccxt.BaseError as e:
+        log(f"  ⚠️  ccxt error on {symbol} (reversal): {e}")
+    except Exception as e:
+        log(f"  ⚠️  unexpected error on {symbol} (reversal): {e}")
+    return None
+
+
+def analyze_symbol_breakout(exchange, symbol: str, candles_15m: list, candles_1h: list,
+                            cryptocom=None, btc_candles: list = None,
+                            coin_news: dict = None) -> dict | None:
+    """
+    SECONDARY pipeline (v2/v3, unchanged): a volume spike has already
+    fired with healthy indicator confluence. Returns alert dict if signal
+    qualifies, else None.
+    """
+    try:
+        # ── GATE: volume explosion required first (cheap — avoids the
+        # live-only microstructure calls below on obviously-quiet symbols) ──
+        explosion, _, _ = calc_volume_explosion(candles_15m)
         if not explosion:
             return None
 
-        # ── Higher-TF (1h) candles, for the shared engine's golden-cross/HTF check ──
-        candles_1h = None
-        try:
-            raw_1h = exchange.fetch_ohlcv(symbol, timeframe=cfg.TIMEFRAME_CONFIRM, limit=cfg.CANDLES_CONFIRM)
-            candles_1h = ohlcv_to_dicts(raw_1h)
-        except Exception:
-            pass
-
         # ── Shared OHLCV-only scoring pass (identical code path used by the backtester) ──
-        result = evaluate_candidate(candles, candles_1h=candles_1h,
+        result = evaluate_candidate(candles_15m, candles_1h=candles_1h,
                                     btc_candles_15m=btc_candles, coin_news=coin_news)
         if result is None:
             return None   # volume-explosion / CLV gate failed
@@ -561,9 +705,9 @@ def analyze_symbol(exchange, symbol: str, cryptocom=None,
         }
 
     except ccxt.BaseError as e:
-        log(f"  ⚠️  ccxt error on {symbol}: {e}")
+        log(f"  ⚠️  ccxt error on {symbol} (breakout): {e}")
     except Exception as e:
-        log(f"  ⚠️  unexpected error on {symbol}: {e}")
+        log(f"  ⚠️  unexpected error on {symbol} (breakout): {e}")
     return None
 
 
@@ -662,6 +806,7 @@ def process_pending_outcomes(exchange, state: dict) -> list:
                     "tp2":           p.get("tp2"),
                     "outcome":       final_outcome,
                     "components":    p.get("components", {}),
+                    "pipeline":      p.get("pipeline", "breakout"),   # old entries predate the reversal pipeline
                     "source":        "live",
                 })
             except Exception as e:
@@ -686,7 +831,7 @@ def process_pending_outcomes(exchange, state: dict) -> list:
 # ─────────────────────────────────────────────────────────────────
 
 def main():
-    log("🚀 Pre-Breakout Scanner v2 — starting cycle")
+    log("🚀 Pre-Breakout Scanner v4 — starting cycle")
 
     # ── Connect exchanges ──
     kucoin = ccxt.kucoin({"enableRateLimit": True})
@@ -708,6 +853,17 @@ def main():
         except Exception as e:
             log(f"⚠️  Crypto.com init failed: {e} — buy-ratio cross-check disabled")
             cryptocom = None
+
+    futures_exchange = None
+    if cfg.USE_DERIVATIVES_CONTEXT:
+        try:
+            futures_exchange = getattr(ccxt, cfg.DERIVATIVES_EXCHANGE)({"enableRateLimit": True})
+            futures_exchange.load_markets()
+            log(f"📡 {cfg.DERIVATIVES_EXCHANGE} futures connected — {len(futures_exchange.markets)} markets "
+                f"(funding-rate/OI positioning bonus for reversal candidates)")
+        except Exception as e:
+            log(f"⚠️  {cfg.DERIVATIVES_EXCHANGE} init failed: {e} — derivatives positioning bonus disabled")
+            futures_exchange = None
 
     try:
         markets = kucoin.load_markets()
@@ -784,17 +940,35 @@ def main():
         log(f"🆕 {len(new_listings)} new listing(s): {new_listings}")
 
     # ── Main scan loop ──
-    alerts  = []
+    # Two independent alert streams per cycle:
+    #   reversal_alerts  — PRIMARY.   Bottom + bullish divergence, before the
+    #                       big volume spike happens.
+    #   breakout_alerts  — SECONDARY. The v2/v3 volume-spike pipeline —
+    #                       already-confirmed, already-moving.
+    # Cooldowns are tracked per-pipeline (symbol#reversal / symbol#breakout)
+    # so a coin can legitimately fire a reversal alert at the bottom AND,
+    # later, a separate breakout alert once it actually launches.
+    reversal_alerts = []
+    breakout_alerts = []
     checked = 0
     skipped_cooldown = 0
 
     effective_threshold = cfg.SCORE_THRESHOLD
     if not btc_ctx["bullish"]:
-        log("⚠️  BTC context is BEARISH — applying stricter score threshold (+10)")
+        log("⚠️  BTC context is BEARISH — applying stricter breakout threshold (+10)")
         effective_threshold += 10
     if cfg.USE_FEAR_GREED and fng and fng.get("value", 0) >= cfg.FEAR_GREED_EXTREME_GREED:
-        log(f"⚠️  Fear&Greed EXTREME GREED ({fng['value']}) — raising threshold by {cfg.FEAR_GREED_THRESHOLD_BUMP} (euphoria = high reversal risk)")
+        log(f"⚠️  Fear&Greed EXTREME GREED ({fng['value']}) — raising both thresholds by {cfg.FEAR_GREED_THRESHOLD_BUMP} (euphoria = high reversal risk)")
         effective_threshold += cfg.FEAR_GREED_THRESHOLD_BUMP
+
+    # NOTE: the reversal threshold deliberately does NOT get the BTC-bearish
+    # bump above — a bottom-reversal detector is EXPECTED to be most active
+    # during bearish/fearful conditions, since that's when bottoms actually
+    # form. It still gets the extreme-greed bump: a "dip" during euphoria is
+    # often a blow-off top faking a base, not a real bottom.
+    effective_reversal_threshold = cfg.REVERSAL_SCORE_THRESHOLD
+    if cfg.USE_FEAR_GREED and fng and fng.get("value", 0) >= cfg.FEAR_GREED_EXTREME_GREED:
+        effective_reversal_threshold += cfg.FEAR_GREED_THRESHOLD_BUMP
 
     if market_news_risk_off:
         log("⏸️  Skipping scan loop this cycle due to market-wide risk-off news")
@@ -806,48 +980,73 @@ def main():
                 time.sleep(cfg.RATE_LIMIT_SLEEP)
                 continue
 
-            # Cooldown check
-            if is_on_cooldown(symbol, alert_history):
+            reversal_cd = is_on_cooldown(f"{symbol}#reversal", alert_history)
+            breakout_cd = is_on_cooldown(f"{symbol}#breakout", alert_history)
+            if reversal_cd and breakout_cd:
                 skipped_cooldown += 1
                 continue
 
-            result = analyze_symbol(kucoin, symbol, cryptocom, btc_candles=btc_15m, news_items=news_items)
+            # ── GATE: coin-specific negative news (hack/delist/lawsuit/etc) — blocks BOTH pipelines ──
+            coin_news = None
+            if cfg.USE_NEWS_FILTER and news_items:
+                coin_news = check_coin_news(base, news_items, max_age_hours=cfg.NEWS_LOOKBACK_HOURS)
+                if coin_news.get("negative"):
+                    log(f"  🚫 {symbol} blocked — negative news: {coin_news.get('headline')}")
+                    time.sleep(cfg.RATE_LIMIT_SLEEP)
+                    continue
+
+            try:
+                ctx = fetch_candle_context(kucoin, symbol)
+            except ccxt.BaseError as e:
+                log(f"  ⚠️  ccxt error fetching {symbol}: {e}")
+                ctx = None
+            except Exception as e:
+                log(f"  ⚠️  unexpected error fetching {symbol}: {e}")
+                ctx = None
+
             checked += 1
-
-            if result is None:
+            if ctx is None:
                 time.sleep(cfg.RATE_LIMIT_SLEEP)
                 continue
 
-            # Apply effective threshold
-            if result["score"] < effective_threshold:
-                time.sleep(cfg.RATE_LIMIT_SLEEP)
-                continue
+            # ── PRIMARY: bottom reversal ──
+            if not reversal_cd:
+                r = analyze_symbol_reversal(kucoin, symbol, ctx["candles_15m"], ctx["candles_1h"],
+                                            futures_exchange=futures_exchange, btc_candles=btc_15m,
+                                            coin_news=coin_news)
+                if r is not None and r["score"] >= effective_reversal_threshold:
+                    r["fng"] = fng
+                    reversal_alerts.append(r)
+                    log(f"  🔄 REVERSAL: {symbol} score={r['score']}")
 
-            # Cross-exchange validation
-            if binance and cfg.CROSS_VALIDATE:
-                confirmed = validate_on_binance(binance, symbol)
-                if not confirmed:
-                    log(f"  ⚡ {symbol} score={result['score']} but NOT confirmed on Binance — downgraded")
-                    result["score"] = max(0, result["score"] - 10)
-                    result["reasons"].append("ℹ️  Not confirmed on Binance (−10 pts)")
-                    if result["score"] < effective_threshold:
-                        time.sleep(cfg.RATE_LIMIT_SLEEP)
-                        continue
+            # ── SECONDARY: confirmed breakout ──
+            if not breakout_cd:
+                b = analyze_symbol_breakout(kucoin, symbol, ctx["candles_15m"], ctx["candles_1h"],
+                                            cryptocom, btc_candles=btc_15m, coin_news=coin_news)
+                if b is not None and b["score"] >= effective_threshold:
+                    if binance and cfg.CROSS_VALIDATE:
+                        confirmed = validate_on_binance(binance, symbol)
+                        if not confirmed:
+                            log(f"  ⚡ {symbol} score={b['score']} but NOT confirmed on Binance — downgraded")
+                            b["score"] = max(0, b["score"] - 10)
+                            b["reasons"].append("ℹ️  Not confirmed on Binance (−10 pts)")
+                    if b["score"] >= effective_threshold:
+                        b["fng"] = fng
+                        breakout_alerts.append(b)
+                        log(f"  🎯 BREAKOUT: {symbol} score={b['score']} vol={b['vol_ratio']}x")
 
-            result["fng"] = fng
-            alerts.append(result)
-            log(f"  🎯 SIGNAL: {symbol} score={result['score']} vol={result['vol_ratio']}x")
             time.sleep(cfg.RATE_LIMIT_SLEEP)
 
-    log(f"✅ Scanned {checked} pairs | {skipped_cooldown} on cooldown | {len(alerts)} signal(s)")
+    log(f"✅ Scanned {checked} pairs | {skipped_cooldown} on cooldown | "
+        f"{len(reversal_alerts)} reversal signal(s) | {len(breakout_alerts)} breakout signal(s)")
 
-    # ── Send alerts (sorted by score, capped) ──
-    alerts.sort(key=lambda a: a["score"], reverse=True)
-    sent = 0
-    for a in alerts[: cfg.MAX_ALERTS_PER_RUN]:
-        msg = format_alert(a)
+    # ── Send reversal alerts first (primary, earlier warning) ──
+    reversal_alerts.sort(key=lambda a: a["score"], reverse=True)
+    sent_reversal = 0
+    for a in reversal_alerts[: cfg.REVERSAL_MAX_ALERTS_PER_RUN]:
+        msg = format_reversal_alert(a)
         send_telegram(msg)
-        alert_history[a["symbol"]] = datetime.now(timezone.utc).isoformat()
+        alert_history[f"{a['symbol']}#reversal"] = datetime.now(timezone.utc).isoformat()
         state.setdefault("pending_outcomes", []).append({
             "symbol":     a["symbol"],
             "alert_time": datetime.now(timezone.utc).isoformat(),
@@ -857,10 +1056,33 @@ def main():
             "tp1":        a["tp1"],
             "tp2":        a["tp2"],
             "components": a.get("components", {}),
+            "pipeline":   "reversal",
         })
-        sent += 1
+        sent_reversal += 1
         time.sleep(1)   # small delay between Telegram messages
 
+    # ── Send breakout alerts (secondary, already-confirmed) ──
+    breakout_alerts.sort(key=lambda a: a["score"], reverse=True)
+    sent_breakout = 0
+    for a in breakout_alerts[: cfg.MAX_ALERTS_PER_RUN]:
+        msg = format_alert(a)
+        send_telegram(msg)
+        alert_history[f"{a['symbol']}#breakout"] = datetime.now(timezone.utc).isoformat()
+        state.setdefault("pending_outcomes", []).append({
+            "symbol":     a["symbol"],
+            "alert_time": datetime.now(timezone.utc).isoformat(),
+            "score":      a["score"],
+            "entry":      a["price"],
+            "sl":         a["sl"],
+            "tp1":        a["tp1"],
+            "tp2":        a["tp2"],
+            "components": a.get("components", {}),
+            "pipeline":   "breakout",
+        })
+        sent_breakout += 1
+        time.sleep(1)   # small delay between Telegram messages
+
+    sent = sent_reversal + sent_breakout
     if sent == 0 and not is_first_run and not new_listings:
         log("💤 No qualifying signals this cycle — Telegram silent")
 
@@ -880,7 +1102,7 @@ def main():
             if news_catalyst_sent >= cfg.MAX_NEWS_CATALYST_ALERTS_PER_RUN:
                 break
             symbol = f"{base}/{cfg.QUOTE}"
-            if symbol not in current_symbols or is_on_cooldown(symbol, alert_history):
+            if symbol not in current_symbols or is_on_cooldown(f"{symbol}#news", alert_history):
                 continue
             result = analyze_news_catalyst(kucoin, symbol, news_info)
             if result is None:
@@ -888,7 +1110,7 @@ def main():
                 continue
             msg = format_news_catalyst_alert(result)
             send_telegram(msg)
-            alert_history[symbol] = datetime.now(timezone.utc).isoformat()
+            alert_history[f"{symbol}#news"] = datetime.now(timezone.utc).isoformat()
             if result.get("sl") is not None:
                 state.setdefault("pending_outcomes", []).append({
                     "symbol":     symbol,
@@ -899,6 +1121,7 @@ def main():
                     "tp1":        result["tp1"],
                     "tp2":        result["tp2"],
                     "components": {"news_catalyst": True},
+                    "pipeline":   "news_catalyst",
                 })
             news_catalyst_sent += 1
             log(f"  📰 NEWS CATALYST: {symbol} — {news_info['headline'][:80]}")
@@ -912,7 +1135,8 @@ def main():
     pause_str = " | ⏸️ paused (news risk-off)" if market_news_risk_off else ""
     summary = (
         f"🔍 Scan complete — {checked} pairs checked\n"
-        f"Signals: {sent} | News catalysts: {news_catalyst_sent} | BTC: {btc_ctx['trend']} {btc_rsi_str}{fng_str}{pause_str}\n"
+        f"🔄 Reversal: {sent_reversal} | 🚀 Breakout: {sent_breakout} | 📰 News catalysts: {news_catalyst_sent} | "
+        f"BTC: {btc_ctx['trend']} {btc_rsi_str}{fng_str}{pause_str}\n"
         f"<i>{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</i>"
     )
     send_telegram(summary, silent=True)
