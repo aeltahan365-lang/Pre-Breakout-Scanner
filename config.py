@@ -197,6 +197,21 @@ TUNER_MIN_SAMPLE_SIZE   = 20    # minimum trades WITH and WITHOUT a component be
 TUNER_MAX_WEIGHT_NUDGE  = 0.20  # cap a single tuning pass to a +/-20% change per weight
 TUNER_THRESHOLD_SWEEP   = [50, 55, 60, 65, 70, 75, 80, 85]
 
+# ── Miss Hunter (weekly evidence-based tuning) ────────────────────
+# Independent of backtest.py's trade-log replay: this actively hunts for
+# real price pumps in the last week's history, checks whether either
+# pipeline would have caught it in time, and for every miss, pinpoints the
+# EXACT gate that blocked it (not just "score too low") — a diagnostic
+# backtest.py's floor-filtered candidate log can't give you, since a
+# hard-gated symbol never even produces a candidate to log in the first place.
+MISS_HUNTER_LOOKBACK_DAYS     = 7      # "last week" — matches this analysis's weekly cadence
+MISS_HUNTER_PUMP_WINDOW_BARS  = 16     # 4h on 15m — a pump is a low->high move within this window
+MISS_HUNTER_PUMP_MIN_PCT      = 15.0   # minimum low->high % move within the window to count as "a pump"
+MISS_HUNTER_CHECK_BARS_BEFORE = 8      # how far before the pump start to check for an alert (2h)
+MISS_HUNTER_CHECK_BARS_INTO   = 4      # how far into the pump's start still counts as "caught early enough" (1h)
+MISS_HUNTER_MIN_SAMPLE_SIZE   = 10     # minimum misses supporting a pattern before suggesting a config nudge
+MISS_HUNTER_MAX_NUDGE_PCT     = 0.15   # cap any single suggested gate/threshold nudge to +/-15% of its current value
+
 # ── Telegram ─────────────────────────────────────────────────────
 import os
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")

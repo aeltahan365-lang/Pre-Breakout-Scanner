@@ -507,7 +507,8 @@ def calc_bottom_structure(candles: list, lookback: int) -> dict:
                                    this follows a real decline, not sideways chop)
     """
     empty = {"lowest_low": None, "bars_since_low": None, "pct_from_low": None,
-             "near_low": False, "higher_low": False, "prior_trend_down": False}
+             "near_low": False, "higher_low": False, "prior_trend_down": False,
+             "decline_pct": None}
     if len(candles) < lookback + 5:
         return empty
 
@@ -545,6 +546,7 @@ def calc_bottom_structure(candles: list, lookback: int) -> dict:
         "near_low":         near_low,
         "higher_low":       higher_low,
         "prior_trend_down": prior_trend_down,
+        "decline_pct":      round(decline_pct, 3),
     }
 
 

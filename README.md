@@ -69,12 +69,25 @@ A separate weekly workflow (`backtest.yml`) closes the loop: it replays the **ex
 **Nothing self-modifies without review.** The weekly workflow commits the new trade-log data straight to `main` (it's just accumulated data), but any suggested change to `config.py`'s weights or thresholds goes out as a **pull request** with the full per-pipeline analysis in the description — a human still signs off before it changes what real alerts look like. Run it manually any time with:
 
 ```
-python backtest.py      # replay history, append to state/trade_log.jsonl (both pipelines)
-python tuner.py          # report only, no changes
-python tuner.py --apply  # writes suggested changes into config.py (for review before committing)
+python backtest.py       # replay history, append to state/trade_log.jsonl (both pipelines)
+python tuner.py           # report only, no changes
+python tuner.py --apply   # writes suggested weight/threshold changes into config.py (for review before committing)
+python miss_hunter.py         # report only, no changes
+python miss_hunter.py --apply # writes suggested gate/threshold nudges into config.py (for review before committing)
 ```
 
 Known limitations: the backtest can't replay the live-only microstructure gates (taker buy/sell ratio, order book imbalance, cross-exchange validation, futures funding-rate/OI positioning) since those need live data that doesn't exist historically — so it's directionally useful, not a byte-for-byte simulation of what live alerts would have fired. Old trade-log entries predate the reversal pipeline and are treated as `pipeline: "breakout"` by both the backtest dedup logic and the tuner.
+
+### `miss_hunter.py` — "what pumps did we miss last week, and why?"
+
+`backtest.py`/`tuner.py` can only analyze candidates the system actually produced — a symbol that never passes the hard gates (bottom structure, prior decline, reversal evidence, volume explosion) never generates a candidate to log in the first place, so it's invisible to that loop. `miss_hunter.py` closes that specific blind spot, and it's the answer to "why didn't I get a signal on a coin that obviously pumped":
+
+1. **Finds real pumps** — scans the last `MISS_HUNTER_LOOKBACK_DAYS` (default 7) across the same top-volume symbol universe backtest.py uses, for any move ≥`MISS_HUNTER_PUMP_MIN_PCT` (default 15%) low→high within `MISS_HUNTER_PUMP_WINDOW_BARS` (default 4h)
+2. **Replays both pipelines** in the hours immediately before/at each pump's start — did either fire in time?
+3. **For every miss, walks the exact gate sequence** `evaluate_reversal_candidate`/`evaluate_candidate` use and reports precisely which one blocked it: not near a low, no confirmed prior decline, no divergence/momentum-turn/accumulation evidence, volume too quiet, or scored but fell short of the threshold (with which components were missing)
+4. **Aggregates misses into patterns** and, only once a pattern has `MISS_HUNTER_MIN_SAMPLE_SIZE` (default 10) supporting misses, proposes a small, capped (±`MISS_HUNTER_MAX_NUDGE_PCT`, default 15%, per run) nudge to the specific gate that's provably excluding real pumps — e.g. "12 missed pumps were basing an average of 10.6% off the low, vs the 8.0% proximity gate → suggest raising it to 9.2%"
+
+Every suggestion only **loosens** a gate that demonstrably excluded a real pump — it never tightens off miss data (that's `tuner.py`'s job, using win-rate correlation on trades that *did* fire). The two scripts are complementary and run back-to-back in the weekly workflow, with both reports combined into the same auto-tune pull request. Realistic expectation: this tightens the gap between "what pumped" and "what we caught" over time — it is **not** a path to a 95%+ hit rate. No detector, however well-tuned, reliably catches that share of moves before they happen; treat steady, evidence-backed improvement as the actual goal.
 
 ## What's New in v2
 
@@ -200,6 +213,8 @@ pre-breakout-scanner/
 │                          (reversal), used by scanner.py AND backtest.py
 ├── backtest.py         ← Historical replay engine (weekly) — backtests BOTH pipelines
 ├── tuner.py            ← Reads trade_log.jsonl, suggests weight/threshold changes PER PIPELINE
+├── miss_hunter.py      ← Weekly: finds real pumps, diagnoses exactly why each pipeline missed them,
+│                          suggests capped gate nudges from the evidence
 ├── indicators.py       ← All TA indicators, incl. bottom structure, accumulation signature,
 │                          golden/death cross, divergence, relative strength
 ├── derivatives.py      ← Free futures funding-rate/OI proxy for on-chain/smart-money positioning
@@ -209,7 +224,8 @@ pre-breakout-scanner/
 ├── state/
 │   ├── known_symbols.json   ← Auto-updated each run (tracks symbols + per-pipeline cooldowns)
 │   ├── trade_log.jsonl      ← Every resolved trade, live + backtest, tagged with pipeline (the learning data)
-│   └── tuning_report.md     ← Latest self-tuning analysis (regenerated weekly)
+│   ├── tuning_report.md     ← Latest self-tuning analysis (regenerated weekly)
+│   └── miss_report.md       ← Latest miss-hunter analysis (regenerated weekly)
 └── .github/
     └── workflows/
         ├── scan.yml         ← Live scanner, every 15 minutes
