@@ -840,15 +840,41 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-15T09:53:55.686712+00:00",
+  "last_run": "2026-08-15T10:23:46.613941+00:00",
   "alert_history": {
-    "ETHFI/USDT": "2026-08-15T07:56:27.684918+00:00",
-    "H/USDT": "2026-08-15T09:26:48.388576+00:00"
+    "H/USDT": "2026-08-15T09:26:48.388576+00:00",
+    "BAS/USDT": "2026-08-15T10:23:45.257149+00:00"
   },
   "stats": {
     "wins": 88,
     "losses": 130,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "BAS/USDT",
+      "alert_time": "2026-08-15T10:23:45.257164+00:00",
+      "score": 94,
+      "entry": 0.02517,
+      "sl": 0.02505312,
+      "tp1": 0.025325840000000002,
+      "tp2": 0.025442720000000002,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": true,
+        "donchian_breakout": true,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": false,
+        "death_cross_active": true,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
+      }
+    }
+  ]
 }
