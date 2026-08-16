@@ -62,7 +62,7 @@ ADL_EMA_SLOW       = 10
 # high-conviction setup — vol + squeeze + trend + institutional confluence —
 # should be able to hit 100 without every single sub-signal maxing out).
 WEIGHT_VOLUME_EXPLOSION  = 25   # core trigger
-WEIGHT_BB_SQUEEZE        = 15   # pre-breakout coil (leading — the whole point of "pre" breakout)
+WEIGHT_BB_SQUEEZE        = 14   # pre-breakout coil (leading — the whole point of "pre" breakout)
 WEIGHT_RSI               = 10   # healthy zone (38-68, see build_score)
 WEIGHT_MACD              = 10   # bullish cross
 WEIGHT_DONCHIAN          = 6    # channel breakout — intentionally lower: by definition this fires
