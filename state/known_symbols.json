@@ -844,42 +844,18 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-19T20:03:10.197684+00:00",
+  "last_run": "2026-08-19T20:39:06.888433+00:00",
   "alert_history": {
     "US/USDT": "2026-08-19T19:09:27.077206+00:00",
-    "HIGH/USDT": "2026-08-19T19:42:20.760037+00:00"
+    "HIGH/USDT": "2026-08-19T19:42:20.760037+00:00",
+    "XPR/USDT": "2026-08-19T20:39:04.856568+00:00"
   },
   "stats": {
     "wins": 96,
-    "losses": 138,
+    "losses": 139,
     "expired": 0
   },
   "pending_outcomes": [
-    {
-      "symbol": "RENDER/USDT",
-      "alert_time": "2026-08-19T17:31:54.086494+00:00",
-      "score": 73,
-      "entry": 1.327,
-      "sl": 1.31450665,
-      "tp1": 1.3436578,
-      "tp2": 1.3561511499999999,
-      "components": {
-        "rsi_healthy": false,
-        "macd_bullish_cross": false,
-        "bb_squeeze": true,
-        "donchian_breakout": true,
-        "trend_bullish": true,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": false,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": false,
-        "bearish_divergence": true,
-        "rs_leading": false,
-        "early_move": true
-      }
-    },
     {
       "symbol": "US/USDT",
       "alert_time": "2026-08-19T19:09:27.077223+00:00",
@@ -902,6 +878,31 @@
       "tp2": 0.02167041,
       "components": {
         "news_catalyst": true
+      }
+    },
+    {
+      "symbol": "XPR/USDT",
+      "alert_time": "2026-08-19T20:39:04.856586+00:00",
+      "score": 75,
+      "entry": 0.0026719,
+      "sl": 0.00265333,
+      "tp1": 0.00269666,
+      "tp2": 0.00271523,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": true,
+        "bb_squeeze": true,
+        "donchian_breakout": true,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": true,
+        "rs_leading": true,
+        "early_move": true
       }
     }
   ]
