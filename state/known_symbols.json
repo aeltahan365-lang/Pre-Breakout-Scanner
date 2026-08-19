@@ -844,57 +844,19 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-19T21:07:33.989608+00:00",
+  "last_run": "2026-08-19T21:44:50.332312+00:00",
   "alert_history": {
-    "US/USDT": "2026-08-19T19:09:27.077206+00:00",
     "HIGH/USDT": "2026-08-19T21:07:33.387982+00:00",
     "XPR/USDT": "2026-08-19T20:39:04.856568+00:00",
     "XAI/USDT": "2026-08-19T21:07:30.693679+00:00",
     "BTC/USDT": "2026-08-19T21:07:32.631445+00:00"
   },
   "stats": {
-    "wins": 97,
+    "wins": 99,
     "losses": 140,
     "expired": 0
   },
   "pending_outcomes": [
-    {
-      "symbol": "HIGH/USDT",
-      "alert_time": "2026-08-19T19:42:20.760055+00:00",
-      "score": null,
-      "entry": 0.0207,
-      "sl": 0.02028411,
-      "tp1": 0.02125452,
-      "tp2": 0.02167041,
-      "components": {
-        "news_catalyst": true
-      }
-    },
-    {
-      "symbol": "XAI/USDT",
-      "alert_time": "2026-08-19T21:07:30.693699+00:00",
-      "score": 90,
-      "entry": 0.00727,
-      "sl": 0.007215610000000001,
-      "tp1": 0.007342520000000001,
-      "tp2": 0.0073969100000000005,
-      "components": {
-        "rsi_healthy": false,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": true,
-        "trend_bullish": true,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": false,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": false,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": true
-      }
-    },
     {
       "symbol": "BTC/USDT",
       "alert_time": "2026-08-19T21:07:32.631465+00:00",
