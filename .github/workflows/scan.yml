@@ -71,7 +71,7 @@ jobs:
         run: |
           git config user.name  "pre-breakout-bot"
           git config user.email "actions@github.com"
-          git add state/known_symbols.json
+          git add state/known_symbols.json state/trade_log.jsonl
           git diff --quiet --cached || git commit -m "chore: update state [skip ci]"
           git pull --rebase origin main
           git push
