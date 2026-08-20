@@ -18,6 +18,8 @@ from config import (
     REGRESSION_PERIOD, TREND_FAST_EMA, TREND_SLOW_EMA,
     ADL_EMA_FAST, ADL_EMA_SLOW, VOLUME_LOOKBACK, VOLUME_SPIKE_RATIO,
     MA_FAST_PERIOD, MA_SLOW_PERIOD, DIVERGENCE_LOOKBACK,
+    SWING_LOOKBACK, SWING_PIVOT_WINDOW, SWING_CLUSTER_PCT, SWING_PROXIMITY_PCT,
+    FIB_LOOKBACK, WYCKOFF_RANGE_LOOKBACK, WYCKOFF_RECENT_BARS,
 )
 
 
@@ -764,6 +766,174 @@ def htf_confirmation(candles_1h: list) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════
+# SWING-BASED SUPPORT / RESISTANCE
+# ═══════════════════════════════════════════════════════════════════
+# Fractal pivot detection (a bar that's the highest/lowest of a small
+# window around it) is the standard, widely-used way technical traders
+# turn "where are the key levels" into a rule: cluster nearby pivots into
+# zones (a level touched more than once is a stronger zone), then check
+# whether price is actually reacting to one of them right now — basing
+# near support is a healthier pre-breakout setup than one sitting right
+# under a resistance shelf, even with identical volume/RSI/MACD readings.
+
+def find_swing_levels(candles: list,
+                      window: int = SWING_PIVOT_WINDOW,
+                      lookback: int = SWING_LOOKBACK,
+                      cluster_pct: float = SWING_CLUSTER_PCT,
+                      proximity_pct: float = SWING_PROXIMITY_PCT) -> dict:
+    """
+    Returns dict:
+      support / resistance             : float | None (nearest cluster below/above price)
+      support_touches / resistance_touches : int  (pivots that formed that zone — more = stronger)
+      near_support / near_resistance   : bool (price within proximity_pct% of that zone)
+    """
+    empty = {"support": None, "resistance": None, "support_touches": 0,
+             "resistance_touches": 0, "near_support": False, "near_resistance": False}
+    if len(candles) < window * 2 + 5:
+        return empty
+
+    window_candles = candles[-lookback:] if len(candles) > lookback else candles
+    highs, lows = _highs(window_candles), _lows(window_candles)
+    if len(window_candles) < window * 2 + 1:
+        return empty
+
+    pivot_highs = [highs[i] for i in _find_swing_points(highs, window, "high")]
+    pivot_lows  = [lows[i]  for i in _find_swing_points(lows,  window, "low")]
+
+    def _cluster(levels):
+        if not levels:
+            return []
+        levels = sorted(levels)
+        clusters = [[levels[0]]]
+        for lv in levels[1:]:
+            if abs(lv - clusters[-1][-1]) / clusters[-1][-1] * 100 <= cluster_pct:
+                clusters[-1].append(lv)
+            else:
+                clusters.append([lv])
+        return [(sum(c) / len(c), len(c)) for c in clusters]
+
+    price = window_candles[-1]["close"]
+    res_clusters = [c for c in _cluster(pivot_highs) if c[0] > price]
+    sup_clusters = [c for c in _cluster(pivot_lows)  if c[0] < price]
+
+    resistance, res_touches = min(res_clusters, key=lambda c: c[0]) if res_clusters else (None, 0)
+    support, sup_touches    = max(sup_clusters, key=lambda c: c[0]) if sup_clusters else (None, 0)
+
+    near_support    = support    is not None and price > 0 and 0 <= (price - support) / price * 100 <= proximity_pct
+    near_resistance = resistance is not None and price > 0 and 0 <= (resistance - price) / price * 100 <= proximity_pct
+
+    return {
+        "support":            round(support, 8) if support else None,
+        "resistance":         round(resistance, 8) if resistance else None,
+        "support_touches":    sup_touches,
+        "resistance_touches": res_touches,
+        "near_support":       near_support,
+        "near_resistance":    near_resistance,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════
+# FIBONACCI RETRACEMENT CONFLUENCE
+# ═══════════════════════════════════════════════════════════════════
+# Standard Fibonacci retracement — generic technical-analysis tooling
+# rather than any one analyst's proprietary formula, but a technique
+# almost every chart-reading trader (Soloway included) leans on: after a
+# swing move, price often pulls back to a Fib level before continuing.
+# A pre-breakout candidate sitting in the "golden pocket" (61.8%-65%
+# retracement of the last up-leg) has extra confluence a raw volume
+# spike alone doesn't capture.
+
+def calc_fib_confluence(candles: list,
+                        lookback: int = FIB_LOOKBACK,
+                        pivot_window: int = SWING_PIVOT_WINDOW) -> dict:
+    """
+    Finds the most recent swing-low -> swing-high leg within `lookback`
+    bars and checks whether current price sits inside the "golden pocket"
+    (61.8%-65% retracement of that leg).
+
+    Returns dict: swing_low, swing_high, golden_pocket_low/high (float|None),
+    in_golden_pocket (bool)
+    """
+    empty = {"swing_low": None, "swing_high": None, "golden_pocket_low": None,
+             "golden_pocket_high": None, "in_golden_pocket": False}
+    if len(candles) < lookback:
+        return empty
+
+    window = candles[-lookback:]
+    lows, highs = _lows(window), _highs(window)
+    low_idxs  = _find_swing_points(lows,  pivot_window, "low")
+    high_idxs = _find_swing_points(highs, pivot_window, "high")
+    if not low_idxs or not high_idxs:
+        return empty
+
+    # Most recent swing low that's followed by a swing high — i.e. the
+    # latest completed up-leg in the window.
+    last_low_idx = low_idxs[-1]
+    highs_after = [i for i in high_idxs if i > last_low_idx]
+    if not highs_after:
+        return empty
+    last_high_idx = highs_after[-1]
+
+    swing_low, swing_high = lows[last_low_idx], highs[last_high_idx]
+    leg = swing_high - swing_low
+    if leg <= 0:
+        return empty
+
+    gp_low  = swing_high - leg * 0.65
+    gp_high = swing_high - leg * 0.618
+    price = window[-1]["close"]
+
+    return {
+        "swing_low":          round(swing_low, 8),
+        "swing_high":         round(swing_high, 8),
+        "golden_pocket_low":  round(gp_low, 8),
+        "golden_pocket_high": round(gp_high, 8),
+        "in_golden_pocket":   gp_low <= price <= gp_high,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════
+# WYCKOFF SPRING (accumulation-range shakeout)
+# ═══════════════════════════════════════════════════════════════════
+# Wyckoff never published a formula — this is the standard operational
+# reading practitioner writeups use: a "Spring" is a brief false breakdown
+# below a trading range's support, on BELOW-average volume, quickly
+# reclaimed back inside the range. It reads as weak hands being shaken
+# out, not real distribution, and — unlike most of this engine's other
+# confirmation signals — it's a genuinely LEADING signal that fires
+# *before* the breakout, which fits this scanner's whole premise better
+# than a lagging one.
+
+def detect_wyckoff_spring(candles: list,
+                          range_lookback: int = WYCKOFF_RANGE_LOOKBACK,
+                          recent_bars: int = WYCKOFF_RECENT_BARS) -> dict:
+    """
+    Returns dict: spring_detected (bool), range_low, range_high (float|None),
+    detail (str|None)
+    """
+    empty = {"spring_detected": False, "range_low": None, "range_high": None, "detail": None}
+    if len(candles) < range_lookback + recent_bars + 1:
+        return empty
+
+    pre_range  = candles[-(range_lookback + recent_bars):-recent_bars]
+    range_low  = min(c["low"]  for c in pre_range)
+    range_high = max(c["high"] for c in pre_range)
+    avg_vol    = sum(c["volume"] for c in pre_range) / len(pre_range) if pre_range else 0
+
+    for c in candles[-recent_bars:]:
+        if avg_vol > 0 and c["low"] < range_low and c["close"] > range_low and c["volume"] < avg_vol:
+            return {
+                "spring_detected": True,
+                "range_low":  round(range_low, 8),
+                "range_high": round(range_high, 8),
+                "detail": f"false breakdown below {round(range_low, 8)} on below-average volume, reclaimed",
+            }
+
+    return {"spring_detected": False, "range_low": round(range_low, 8),
+             "range_high": round(range_high, 8), "detail": None}
+
+
+# ═══════════════════════════════════════════════════════════════════
 # COMPOSITE SCORER
 # ═══════════════════════════════════════════════════════════════════
 
@@ -784,6 +954,9 @@ def build_score(
     macd_div:       dict = None,
     rel_strength:   dict = None,
     coin_news:      dict = None,
+    swing_levels:   dict = None,
+    fib:            dict = None,
+    wyckoff:        dict = None,
 ) -> tuple:
     """
     Returns (score: int [0-100], reasons: list[str])
@@ -798,6 +971,8 @@ def build_score(
         WEIGHT_BULLISH_DIVERGENCE, BEARISH_DIVERGENCE_PENALTY,
         WEIGHT_RELATIVE_STRENGTH, RS_LAGGARD_PENALTY, RS_LOOKBACK,
         WEIGHT_POSITIVE_NEWS,
+        WEIGHT_SWING_SUPPORT, SWING_RESISTANCE_PENALTY,
+        WEIGHT_FIB_GOLDEN_POCKET, WEIGHT_WYCKOFF_SPRING,
     )
     golden_cross = golden_cross or {}
     rsi_div      = rsi_div or {}
@@ -929,6 +1104,28 @@ def build_score(
     if coin_news and coin_news.get("positive"):
         score  += WEIGHT_POSITIVE_NEWS
         reasons.append(f"📰 Positive catalyst: {coin_news.get('headline')}")
+
+    # ── 16. Swing Support / Resistance confluence ──
+    if swing_levels:
+        if swing_levels.get("near_support"):
+            score  += WEIGHT_SWING_SUPPORT
+            reasons.append(f"✅ Basing near swing support (${swing_levels.get('support')}, "
+                           f"{swing_levels.get('support_touches')} touch(es))")
+        if swing_levels.get("near_resistance"):
+            score  -= SWING_RESISTANCE_PENALTY
+            reasons.append(f"⚠️ Right under swing resistance (${swing_levels.get('resistance')}, "
+                           f"{swing_levels.get('resistance_touches')} touch(es)) — breakout may stall")
+
+    # ── 17. Fibonacci golden pocket confluence ──
+    if fib and fib.get("in_golden_pocket"):
+        score  += WEIGHT_FIB_GOLDEN_POCKET
+        reasons.append("✅ Price in Fib golden pocket (61.8-65% retracement) — classic bounce zone")
+
+    # ── 18. Wyckoff Spring (leading shakeout signal) ──
+    if wyckoff and wyckoff.get("spring_detected"):
+        score  += WEIGHT_WYCKOFF_SPRING
+        reasons.append(f"🌱 Wyckoff Spring — false breakdown below ${wyckoff.get('range_low')} "
+                       f"on low volume, reclaimed (shakeout, not distribution)")
 
     score = max(0, min(100, round(score)))
     return score, reasons

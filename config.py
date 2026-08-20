@@ -92,6 +92,32 @@ RS_LOOKBACK                  = 20    # bars (15m) compared against BTC over the 
 WEIGHT_RELATIVE_STRENGTH     = 7     # coin is genuinely outperforming BTC, not just riding a market-wide move
 RS_LAGGARD_PENALTY           = 6     # coin is UNDERPERFORMING BTC despite the volume spike — likely just beta, not alpha
 
+# ── Chart-Reading Signals (researched from Peter Brandt's classical
+#    charting, the Wyckoff Method, and standard Fibonacci/support-
+#    resistance technique used industry-wide, incl. by Gareth Soloway) ──
+# Deliberately excludes anything that isn't a documented, codifiable rule:
+# no Benjamin Cowen-style log-regression/"Risk Metric" (needs years of
+# price history + on-chain/sentiment data — wrong fit for fast-rotating
+# 15m altcoins) and no proprietary named tactics that were never publicly
+# specified with an actual formula. See PR description / commit message
+# for the full research writeup and source links.
+USE_SWING_LEVELS              = True
+SWING_LOOKBACK                = 80    # bars (15m) scanned for fractal pivots
+SWING_PIVOT_WINDOW            = 3     # a bar is a pivot if it's the high/low of this many bars on each side
+SWING_CLUSTER_PCT             = 0.5   # merge pivots within this % of each other into one level
+SWING_PROXIMITY_PCT           = 1.5   # price counts as "at" a level within this %
+WEIGHT_SWING_SUPPORT          = 6     # basing near a known swing-support cluster
+SWING_RESISTANCE_PENALTY      = 8     # sitting right under a known swing-resistance cluster — breakout likely to stall
+
+USE_FIB_CONFLUENCE            = True
+FIB_LOOKBACK                  = 60    # bars (15m) scanned for the most recent swing leg
+WEIGHT_FIB_GOLDEN_POCKET      = 5     # price sitting in the 61.8-65% retracement zone of that leg
+
+USE_WYCKOFF_SPRING            = True
+WYCKOFF_RANGE_LOOKBACK        = 20    # bars forming the "trading range" a spring dips below
+WYCKOFF_RECENT_BARS           = 5     # spring must have occurred within this many of the most recent bars
+WEIGHT_WYCKOFF_SPRING         = 10    # false breakdown + reclaim on low volume — a leading shakeout signal
+
 # ── Market Sentiment / News (free, keyless sources) ───────────────
 USE_FEAR_GREED               = True
 FEAR_GREED_EXTREME_GREED     = 80    # alternative.me Fear & Greed Index — euphoria zone

@@ -29,6 +29,20 @@ Everything above still requires price/volume to move *first* — news only adjus
 
 News-Catalyst Alerts are a separate, independent pass: a fresh (within `NEWS_CATALYST_MAX_AGE_HOURS`, default 6h) positive headline — partnership, listing, mainnet launch, upgrade, adoption, ETF approval, institutional inflow, buyback, token burn, airdrop — plus just a **modest** confirming reaction (`NEWS_CATALYST_MIN_VOL_RATIO`, default 1.5x average volume, vs. 3.5x for the main pipeline) is enough to fire on its own. These are tagged `📰 NEWS CATALYST` in Telegram and explicitly marked as a separate, less-confirmed signal type — they skip the full institutional scoring suite, so treat them as an earlier/rawer heads-up, not a high-conviction signal like the main alerts.
 
+### Chart-Reading Signals (researched from real technical-analysis methodology)
+
+Three more scoring components, added after researching what's actually publicly documented and codifiable from well-known chart analysts (Peter Brandt's classical charting, the Wyckoff Method's accumulation schematic, and the standard Fibonacci/support-resistance technique used industry-wide — including by traders like Gareth Soloway). Each is genuinely deterministic — no discretionary "read the chart" judgment, just rules that operate on the same OHLCV candles the rest of the engine already uses:
+
+| Signal | What it checks | Points |
+|---|---|---|
+| **Swing Support/Resistance** | Clusters recent fractal pivot highs/lows into support/resistance zones; bonus if price is basing near a support zone, penalty if it's sitting right under a resistance zone (a breakout there is more likely to stall) | `WEIGHT_SWING_SUPPORT` (+6) / `SWING_RESISTANCE_PENALTY` (−8) |
+| **Fibonacci Golden Pocket** | Finds the most recent swing-low → swing-high leg and checks if price has pulled back into the 61.8–65% retracement zone — the classic "golden pocket" bounce area | `WEIGHT_FIB_GOLDEN_POCKET` (+5) |
+| **Wyckoff Spring** | Detects a false breakdown below a recent trading range's support, on below-average volume, that gets reclaimed within a few bars — a shakeout, not real distribution, and unlike most of this engine's signals it's a *leading* indicator that fires before the breakout | `WEIGHT_WYCKOFF_SPRING` (+10) |
+
+**Deliberately excluded** (researched and ruled out, not overlooked): Benjamin Cowen's logarithmic-regression bands and "Risk Metric" — he's never published the exact formula, open-source recreations are acknowledged approximations, and the underlying inputs (years of price history, on-chain data, Google Trends) don't exist for a 15-minute altcoin scanner anyway. Same for any analyst's proprietary named tactics that were never publicly specified with an actual rule (marketing terms, not methodology) — those aren't something code can honestly implement, so they were left out rather than guessed at.
+
+Toggle each independently with `USE_SWING_LEVELS` / `USE_FIB_CONFLUENCE` / `USE_WYCKOFF_SPRING` in `config.py`. Like every other component, the self-tuner (below) automatically tracks whether each one actually correlates with wins once enough live/backtest trades accumulate.
+
 ## Backtesting & Self-Tuning (the learning loop)
 
 A separate weekly workflow (`backtest.yml`) closes the loop: it replays the **exact same scoring logic** the live scanner uses against real historical Binance data, resolves every simulated signal against its own future candles (deterministically, since it's history), and logs the result. Combined with live results (the scanner already tracks whether every real alert's SL/TP1/TP2 got hit), this builds up a growing dataset of "what actually worked."
@@ -290,4 +304,12 @@ python trader.py --resume   # clear the halt flag
 - **رابط TradingView مباشر**
 - **تنفيذ تلقائي اختياري (مطفأ افتراضياً)** — راجع قسم [Live Auto-Trading](#live-auto-trading-real-money) قبل تفعيله؛ فيه سقف خسارة يومي 5%، وحد أقصى 1-2% من الرصيد لكل صفقة، ومفتاح إيقاف فوري (kill switch)
 
-جميع الإعدادات القابلة للتعديل موجودة في `config.py`.
+### إشارات قراءة الشارت (بعد بحث حقيقي، مش تخمين)
+
+بناءً على طلب بحث عن استراتيجيات المحللين الكبار المعروفين بقراءة الشارت (زي Benjamin Cowen و Gareth Soloway)، تم البحث فعلياً وطلوع 3 إشارات جديدة قابلة للبرمجة فعلياً (يعني قاعدة رياضية واضحة، مش مجرد "إحساس" بالسوق):
+
+- **مناطق الدعم والمقاومة (Swing Support/Resistance)** — بيلقط القمم والقيعان السابقة القريبة من السعر الحالي، ويدي بونص لو العملة قاعدة (basing) فوق دعم قوي، وخصم لو قاعدة تحت مقاومة (يبقى الاختراق ممكن يترفض هناك)
+- **منطقة فيبوناتشي الذهبية (Fibonacci Golden Pocket)** — بيحسب آخر موجة صعود، ويشوف لو السعر رجع لمنطقة الـ 61.8%-65% ارتداد، وهي منطقة الارتداد الكلاسيكية اللي بيراقبها أغلب المحللين الفنيين
+- **Wyckoff Spring** — بيكشف كسر وهمي تحت الدعم بحجم تداول ضعيف يترد بسرعة (يعني تنضيف للأيدي الضعيفة مش بيع حقيقي) — دي إشارة **مبكرة** (قبل الاختراق)، عكس أغلب إشارات النظام التانية اللي بتتأكد بعد ما الحركة تبدأ
+
+**اتم استبعاده عمداً** بعد البحث: طريقة Benjamin Cowen في الـ logarithmic regression و"Risk Metric" — هو نفسه ما نشرش المعادلة الدقيقة أبداً، والنسخ المتاحة كلها تقريبية بالاعتراف من أصحابها، وكمان محتاجة بيانات سنين طويلة وبيانات on-chain مش متاحة لسكانر بيشتغل كل 15 دقيقة على عملات صغيرة. وبرضو أي أسلوب "سري" لمحلل تاني اتسوّق باسمه بس مفيش قاعدة واضحة منشورة له — تم استبعاده لأن مفيش طريقة أبرمجه صح من غير ما أخمّن.

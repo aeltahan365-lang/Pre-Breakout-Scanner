@@ -39,6 +39,9 @@ from indicators import (
     calc_macd_divergence,
     calc_relative_strength,
     htf_confirmation,
+    find_swing_levels,
+    calc_fib_confluence,
+    detect_wyckoff_spring,
     build_score,
 )
 
@@ -62,12 +65,17 @@ COMPONENT_WEIGHT_MAP = {
     "bearish_divergence":   ("BEARISH_DIVERGENCE_PENALTY", -1),
     "rs_leading":           ("WEIGHT_RELATIVE_STRENGTH",  +1),
     "early_move":           ("EARLY_MOVE_BONUS",          +1),
+    "swing_support":        ("WEIGHT_SWING_SUPPORT",      +1),
+    "swing_resistance":     ("SWING_RESISTANCE_PENALTY",  -1),
+    "fib_golden_pocket":    ("WEIGHT_FIB_GOLDEN_POCKET",  +1),
+    "wyckoff_spring":       ("WEIGHT_WYCKOFF_SPRING",     +1),
 }
 
 
 def _extract_components(rsi_val, macd_val, bb_val, don_val, trend, adl_val,
                         obv_val, htf, golden_cross, rsi_div, macd_div,
-                        rel_strength, price_chg_pct) -> dict:
+                        rel_strength, price_chg_pct,
+                        swing_levels=None, fib=None, wyckoff=None) -> dict:
     """Boolean snapshot of every learnable signal, keyed to match COMPONENT_WEIGHT_MAP."""
     return {
         "rsi_healthy":          rsi_val is not None and 38 <= rsi_val <= 68,
@@ -84,6 +92,10 @@ def _extract_components(rsi_val, macd_val, bb_val, don_val, trend, adl_val,
         "bearish_divergence":   bool(rsi_div.get("bearish") or macd_div.get("bearish")),
         "rs_leading":           bool(rel_strength and rel_strength.get("leading")),
         "early_move":           cfg.EARLY_MOVE_MIN_PCT <= price_chg_pct <= cfg.EARLY_MOVE_MAX_PCT,
+        "swing_support":        bool(swing_levels and swing_levels.get("near_support")),
+        "swing_resistance":     bool(swing_levels and swing_levels.get("near_resistance")),
+        "fib_golden_pocket":    bool(fib and fib.get("in_golden_pocket")),
+        "wyckoff_spring":       bool(wyckoff and wyckoff.get("spring_detected")),
     }
 
 
@@ -144,6 +156,18 @@ def evaluate_candidate(candles_15m: list, candles_1h: list = None,
     if cfg.USE_RELATIVE_STRENGTH and btc_candles_15m:
         rel_strength = calc_relative_strength(candles_15m, btc_candles_15m, lookback=cfg.RS_LOOKBACK)
 
+    swing_levels = {}
+    if cfg.USE_SWING_LEVELS:
+        swing_levels = find_swing_levels(candles_15m)
+
+    fib = {}
+    if cfg.USE_FIB_CONFLUENCE:
+        fib = calc_fib_confluence(candles_15m)
+
+    wyckoff = {}
+    if cfg.USE_WYCKOFF_SPRING:
+        wyckoff = detect_wyckoff_spring(candles_15m)
+
     score, reasons = build_score(
         vol_ratio=vol_ratio,
         price_chg_pct=price_chg_pct,
@@ -161,6 +185,9 @@ def evaluate_candidate(candles_15m: list, candles_1h: list = None,
         macd_div=macd_div,
         rel_strength=rel_strength,
         coin_news=coin_news,
+        swing_levels=swing_levels,
+        fib=fib,
+        wyckoff=wyckoff,
     )
 
     extra = []
@@ -182,7 +209,8 @@ def evaluate_candidate(candles_15m: list, candles_1h: list = None,
 
     components = _extract_components(rsi_val, macd_val, bb_val, don_val, trend,
                                       adl_val, obv_val, htf, golden_cross,
-                                      rsi_div, macd_div, rel_strength, price_chg_pct)
+                                      rsi_div, macd_div, rel_strength, price_chg_pct,
+                                      swing_levels, fib, wyckoff)
 
     return {
         "score":         score,
