@@ -2,7 +2,7 @@
 Pre-Breakout Scanner — Historical Backtester
 ===============================================
 Walk-forward replay of engine.evaluate_candidate() over real historical
-KuCoin OHLCV data. This is what "the system learns what was right and what
+Binance OHLCV data. This is what "the system learns what was right and what
 went wrong" is built on: every candidate the strategy WOULD have flagged
 gets resolved against its own future candles (which we already have, since
 it's history) and logged to state/trade_log.jsonl alongside live results.
@@ -179,7 +179,7 @@ def backtest_symbol(exchange, symbol: str, until_ms: int, btc_15m: list, btc_ts:
 
 def main():
     log("🔬 Pre-Breakout Scanner — Backtest starting")
-    exchange = ccxt.kucoin({"enableRateLimit": True})
+    exchange = ccxt.binance({"enableRateLimit": True})
 
     symbols = pick_symbol_universe(exchange)
     log(f"📊 Backtest universe: {len(symbols)} symbols (top by 24h volume), {cfg.BACKTEST_DAYS} days")

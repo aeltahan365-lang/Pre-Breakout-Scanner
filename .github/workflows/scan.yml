@@ -50,9 +50,20 @@ jobs:
       - name: Run scanner
         id: scanner
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
-          DEBUG:              ${{ github.event.inputs.debug || 'false' }}
+          TELEGRAM_BOT_TOKEN:   ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:     ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Auto-trading — see README "Live Auto-Trading" section before
+          # touching any of these. AUTO_TRADING_ENABLED and BINANCE_TESTNET
+          # are repo VARIABLES (Settings → Secrets and variables → Actions →
+          # Variables tab), not secrets, so they can be flipped instantly as
+          # a kill switch without editing a secret. The API key/secret ARE
+          # secrets, and must be a Trade-only key (no withdrawal permission)
+          # on a dedicated Binance sub-account.
+          AUTO_TRADING_ENABLED: ${{ vars.AUTO_TRADING_ENABLED }}
+          BINANCE_TESTNET:      ${{ vars.BINANCE_TESTNET }}
+          BINANCE_API_KEY:      ${{ secrets.BINANCE_API_KEY }}
+          BINANCE_API_SECRET:   ${{ secrets.BINANCE_API_SECRET }}
+          DEBUG:                ${{ github.event.inputs.debug || 'false' }}
         run: |
           python scanner.py 2>&1 | tee scanner_output.log
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
@@ -71,7 +82,7 @@ jobs:
         run: |
           git config user.name  "pre-breakout-bot"
           git config user.email "actions@github.com"
-          git add state/known_symbols.json state/trade_log.jsonl
+          git add state/known_symbols.json state/trade_log.jsonl state/trading_state.json
           git diff --quiet --cached || git commit -m "chore: update state [skip ci]"
           git pull --rebase origin main
           git push

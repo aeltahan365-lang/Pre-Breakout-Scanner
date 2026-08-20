@@ -21,7 +21,7 @@ NEW vs v1:
   • 9 technical indicators (was 4): RSI, MACD, BB Squeeze, OBV, ATR,
     Stochastic RSI, CMF, Williams %R, Donchian, ADL+Chaikin, Lin Reg, EMA Trend
   • Multi-timeframe: 15m scan + 1h confirmation
-  • Cross-exchange validation (KuCoin primary + Binance check)
+  • Binance is the sole data + execution venue (v3.1 dropped KuCoin)
   • BTC market context filter (skip altcoin longs during BTC bear)
   • Alert cooldown (no re-alerting same symbol within 60 min)
   • ATR-based Stop Loss & Take Profit suggestion in every alert
@@ -49,6 +49,7 @@ from news import (
     check_market_wide_news,
     match_symbols_to_news,
 )
+import trader
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -153,7 +154,7 @@ def format_alert(data: dict) -> str:
     gc       = data.get("golden_cross") or {}
     rs       = data.get("rel_strength")
     fng      = data.get("fng")
-    tv_link  = cfg.TV_BASE.format(exchange="KUCOIN", base=base)
+    tv_link  = cfg.TV_BASE.format(exchange="BINANCE", base=base)
 
     # Score emoji
     if score >= 85:
@@ -220,7 +221,7 @@ def format_alert(data: dict) -> str:
     lines += [
         f"",
         f'📈 <a href="{tv_link}">Open on TradingView</a>',
-        f"<i>KuCoin • {datetime.now(timezone.utc).strftime('%H:%M UTC')}</i>",
+        f"<i>Binance • {datetime.now(timezone.utc).strftime('%H:%M UTC')}</i>",
     ]
     return "\n".join(lines)
 
@@ -279,7 +280,7 @@ def format_news_catalyst_alert(data: dict) -> str:
     sym  = data["symbol"]
     base = sym.replace("/USDT", "").replace(":", "_")
     price, sl, tp1, tp2 = data["price"], data.get("sl"), data.get("tp1"), data.get("tp2")
-    tv_link = cfg.TV_BASE.format(exchange="KUCOIN", base=base)
+    tv_link = cfg.TV_BASE.format(exchange="BINANCE", base=base)
 
     lines = [
         f"📰 <b>NEWS CATALYST — {sym}</b>",
@@ -306,7 +307,7 @@ def format_news_catalyst_alert(data: dict) -> str:
         f"",
         f'📈 <a href="{tv_link}">Open on TradingView</a>',
         f"<i>News-driven — NOT the volume-spike pipeline. Confirm before sizing.</i>",
-        f"<i>KuCoin • {datetime.now(timezone.utc).strftime('%H:%M UTC')}</i>",
+        f"<i>Binance • {datetime.now(timezone.utc).strftime('%H:%M UTC')}</i>",
     ]
     return "\n".join(lines)
 
@@ -332,26 +333,6 @@ def get_btc_context(exchange) -> dict:
     except Exception as e:
         log(f"⚠️  BTC context fetch failed: {e} — assuming neutral")
         return {"bullish": True, "trend": "sideways", "rsi": None}
-
-
-# ─────────────────────────────────────────────────────────────────
-# CROSS-EXCHANGE VALIDATION
-# ─────────────────────────────────────────────────────────────────
-
-def validate_on_binance(binance, symbol: str) -> bool:
-    """
-    Lightweight check: is there also a volume spike on Binance for this pair?
-    Returns True if Binance confirms the signal, False otherwise (or if pair not listed).
-    """
-    try:
-        raw = binance.fetch_ohlcv(symbol, timeframe=cfg.TIMEFRAME_PRIMARY, limit=cfg.CANDLES_PRIMARY)
-        if not raw or len(raw) < 22:
-            return False
-        candles = ohlcv_to_dicts(raw)
-        explosion, ratio, _ = calc_volume_explosion(candles)
-        return explosion
-    except Exception:
-        return False   # Pair may not exist on Binance — not a disqualifier
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -388,7 +369,7 @@ def validate_buy_ratio_cryptocom(cryptocom, symbol: str, limit: int = 150) -> fl
     pair happens to be listed there (ccxt symbol 'TOKEN/USDT' -> Crypto.com
     market 'TOKEN/USDT' — ccxt normalizes the format automatically).
 
-    This is a BONUS confirmation, not a hard requirement: many KuCoin
+    This is a BONUS confirmation, not a hard requirement: many Binance
     small/mid-cap listings (e.g. fresh pre-breakout candidates) simply
     aren't listed on Crypto.com, so a None here just means "no extra
     data available," not "rejected."
@@ -686,18 +667,41 @@ def process_pending_outcomes(exchange, state: dict) -> list:
 # ─────────────────────────────────────────────────────────────────
 
 def main():
-    log("🚀 Pre-Breakout Scanner v2 — starting cycle")
+    log("🚀 Pre-Breakout Scanner v3 — starting cycle")
 
-    # ── Connect exchanges ──
-    kucoin = ccxt.kucoin({"enableRateLimit": True})
-    binance = None
-    if cfg.CROSS_VALIDATE:
+    # ── Connect exchange ──
+    # Market data always comes from Binance's real production API — even
+    # when AUTO_TRADING_ENABLED + BINANCE_TESTNET are on, scanning must see
+    # the real market, not testnet's thin/unrealistic order books. Trading
+    # (balance, orders) goes through a SEPARATE client that respects the
+    # testnet flag.
+    exchange = ccxt.binance({"enableRateLimit": True})
+
+    trade_exchange = trader.get_trading_client()
+    if trade_exchange is not None:
         try:
-            binance = ccxt.binance({"enableRateLimit": True})
-            binance.load_markets()
+            trade_exchange.load_markets()
+            mode = "TESTNET" if cfg.BINANCE_TESTNET else "LIVE — real funds"
+            log(f"🤖 Auto-trading client connected ({mode})")
         except Exception as e:
-            log(f"⚠️  Binance init failed: {e} — cross-validation disabled")
-            binance = None
+            log(f"⚠️  Trading client init failed: {e} — auto-trading disabled this cycle")
+            trade_exchange = None
+
+    trading_state = trader.load_trading_state()
+    if trade_exchange is not None:
+        was_halted = trading_state.get("halted", False)
+        trade_results = trader.reconcile_positions(trade_exchange, trading_state)
+        if trade_results:
+            send_telegram("🤖 <b>Auto-Trade Results</b>\n\n" + "\n".join(trade_results), silent=False)
+        if trading_state.get("halted") and not was_halted:
+            send_telegram(
+                f"🛑 <b>AUTO-TRADING HALTED</b>\n"
+                f"Reason: {trading_state.get('halt_reason')}\n"
+                f"No new positions will open until a human clears this "
+                f"(<code>python trader.py --resume</code> after review).",
+                silent=False,
+            )
+        trader.save_trading_state(trading_state)
 
     cryptocom = None
     if cfg.USE_CRYPTOCOM_VALIDATION:
@@ -710,9 +714,9 @@ def main():
             cryptocom = None
 
     try:
-        markets = kucoin.load_markets()
+        markets = exchange.load_markets()
     except Exception as e:
-        log(f"❌ Failed to load KuCoin markets: {e}")
+        log(f"❌ Failed to load Binance markets: {e}")
         sys.exit(1)
 
     usdt_symbols = sorted([
@@ -722,7 +726,7 @@ def main():
         and m.get("spot", True)
         and "/" in s
     ])
-    log(f"📊 Active KuCoin USDT pairs: {len(usdt_symbols)}")
+    log(f"📊 Active Binance USDT pairs: {len(usdt_symbols)}")
 
     # ── State ──
     state          = load_state()
@@ -731,16 +735,16 @@ def main():
     is_first_run   = len(known_symbols) == 0
 
     # ── Resolve outcomes of previously sent alerts (SL/TP1/TP2 hit?) ──
-    state["pending_outcomes"] = process_pending_outcomes(kucoin, state)
+    state["pending_outcomes"] = process_pending_outcomes(exchange, state)
 
     # ── BTC context (skip altcoin longs in BTC bear) ──
-    btc_ctx = get_btc_context(kucoin)
+    btc_ctx = get_btc_context(exchange)
 
     # ── BTC 15m candles (for relative-strength comparisons) ──
     btc_15m = []
     if cfg.USE_RELATIVE_STRENGTH:
         try:
-            btc_15m = ohlcv_to_dicts(kucoin.fetch_ohlcv("BTC/USDT", timeframe=cfg.TIMEFRAME_PRIMARY,
+            btc_15m = ohlcv_to_dicts(exchange.fetch_ohlcv("BTC/USDT", timeframe=cfg.TIMEFRAME_PRIMARY,
                                                           limit=cfg.RS_LOOKBACK + 5))
         except Exception as e:
             log(f"⚠️  BTC 15m fetch failed: {e} — relative-strength check disabled this cycle")
@@ -779,7 +783,7 @@ def main():
         new_listings = []
 
     if new_listings:
-        msg = "🆕 <b>New KuCoin Listings</b>\n\n" + "\n".join(f"• <code>{s}</code>" for s in new_listings)
+        msg = "🆕 <b>New Binance Listings</b>\n\n" + "\n".join(f"• <code>{s}</code>" for s in new_listings)
         send_telegram(msg)
         log(f"🆕 {len(new_listings)} new listing(s): {new_listings}")
 
@@ -811,7 +815,7 @@ def main():
                 skipped_cooldown += 1
                 continue
 
-            result = analyze_symbol(kucoin, symbol, cryptocom, btc_candles=btc_15m, news_items=news_items)
+            result = analyze_symbol(exchange, symbol, cryptocom, btc_candles=btc_15m, news_items=news_items)
             checked += 1
 
             if result is None:
@@ -822,17 +826,6 @@ def main():
             if result["score"] < effective_threshold:
                 time.sleep(cfg.RATE_LIMIT_SLEEP)
                 continue
-
-            # Cross-exchange validation
-            if binance and cfg.CROSS_VALIDATE:
-                confirmed = validate_on_binance(binance, symbol)
-                if not confirmed:
-                    log(f"  ⚡ {symbol} score={result['score']} but NOT confirmed on Binance — downgraded")
-                    result["score"] = max(0, result["score"] - 10)
-                    result["reasons"].append("ℹ️  Not confirmed on Binance (−10 pts)")
-                    if result["score"] < effective_threshold:
-                        time.sleep(cfg.RATE_LIMIT_SLEEP)
-                        continue
 
             result["fng"] = fng
             alerts.append(result)
@@ -859,6 +852,35 @@ def main():
             "components": a.get("components", {}),
         })
         sent += 1
+
+        if trade_exchange is not None:
+            was_halted = trading_state.get("halted", False)
+            trade_result = trader.maybe_enter_trade(trade_exchange, a, trading_state)
+            if trading_state.get("halted") and not was_halted:
+                send_telegram(
+                    f"🛑 <b>AUTO-TRADING HALTED</b>\n"
+                    f"Reason: {trading_state.get('halt_reason')}\n"
+                    f"No new positions will open until a human clears this "
+                    f"(<code>python trader.py --resume</code> after review).",
+                    silent=False,
+                )
+            if trade_result and not trade_result.get("emergency_exit"):
+                send_telegram(
+                    f"🤖 <b>AUTO-TRADE OPENED — {trade_result['symbol']}</b>\n"
+                    f"Qty: <code>{trade_result['qty']}</code>  @ <code>{trade_result['entry_price']}</code>\n"
+                    f"Risk: {trade_result['risk_pct']}%  |  Notional: ${trade_result['notional']:,.2f}\n"
+                    f"SL: <code>{round(trade_result['sl'], 8)}</code>  |  TP: <code>{round(trade_result['tp1'], 8)}</code>",
+                    silent=False,
+                )
+            elif trade_result and trade_result.get("emergency_exit"):
+                send_telegram(
+                    f"⚠️ <b>AUTO-TRADE ABORTED — {trade_result['symbol']}</b>\n"
+                    f"Position was bought then immediately closed because the protective "
+                    f"stop order failed to place: {trade_result['reason']}",
+                    silent=False,
+                )
+            trader.save_trading_state(trading_state)
+
         time.sleep(1)   # small delay between Telegram messages
 
     if sent == 0 and not is_first_run and not new_listings:
@@ -882,7 +904,7 @@ def main():
             symbol = f"{base}/{cfg.QUOTE}"
             if symbol not in current_symbols or is_on_cooldown(symbol, alert_history):
                 continue
-            result = analyze_news_catalyst(kucoin, symbol, news_info)
+            result = analyze_news_catalyst(exchange, symbol, news_info)
             if result is None:
                 time.sleep(cfg.RATE_LIMIT_SLEEP)
                 continue
@@ -910,9 +932,17 @@ def main():
     btc_rsi_str = f"RSI {btc_ctx['rsi']}" if btc_ctx["rsi"] else ""
     fng_str = f" | F&G: {fng['value']} ({fng['classification']})" if fng else ""
     pause_str = " | ⏸️ paused (news risk-off)" if market_news_risk_off else ""
+    if trade_exchange is not None:
+        if trading_state.get("halted"):
+            trade_str = f" | 🛑 AUTO-TRADING HALTED: {trading_state.get('halt_reason')}"
+        else:
+            open_n = len(trading_state.get("open_positions", {}))
+            trade_str = f" | 🤖 auto-trading ON, {open_n} open position(s)"
+    else:
+        trade_str = ""
     summary = (
         f"🔍 Scan complete — {checked} pairs checked\n"
-        f"Signals: {sent} | News catalysts: {news_catalyst_sent} | BTC: {btc_ctx['trend']} {btc_rsi_str}{fng_str}{pause_str}\n"
+        f"Signals: {sent} | News catalysts: {news_catalyst_sent} | BTC: {btc_ctx['trend']} {btc_rsi_str}{fng_str}{pause_str}{trade_str}\n"
         f"<i>{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</i>"
     )
     send_telegram(summary, silent=True)
@@ -921,6 +951,8 @@ def main():
     state["known_symbols"] = sorted(current_symbols)
     state["alert_history"] = alert_history
     save_state(state)
+    if trade_exchange is not None:
+        trader.save_trading_state(trading_state)
     log("💾 State saved. Cycle complete.")
 
 

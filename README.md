@@ -31,7 +31,7 @@ News-Catalyst Alerts are a separate, independent pass: a fresh (within `NEWS_CAT
 
 ## Backtesting & Self-Tuning (the learning loop)
 
-A separate weekly workflow (`backtest.yml`) closes the loop: it replays the **exact same scoring logic** the live scanner uses against real historical KuCoin data, resolves every simulated signal against its own future candles (deterministically, since it's history), and logs the result. Combined with live results (the scanner already tracks whether every real alert's SL/TP1/TP2 got hit), this builds up a growing dataset of "what actually worked."
+A separate weekly workflow (`backtest.yml`) closes the loop: it replays the **exact same scoring logic** the live scanner uses against real historical Binance data, resolves every simulated signal against its own future candles (deterministically, since it's history), and logs the result. Combined with live results (the scanner already tracks whether every real alert's SL/TP1/TP2 got hit), this builds up a growing dataset of "what actually worked."
 
 - **`engine.py`** — the OHLCV-only scoring logic, factored out so live scanning and backtesting call the *identical* code path. No drift between what's backtested and what's live.
 - **`backtest.py`** — walks forward through ~30 days of history across the top-volume symbols, bar by bar, recording every candidate and its eventual outcome to `state/trade_log.jsonl`.
@@ -69,7 +69,7 @@ Known limitation: the backtest can't replay the live-only microstructure gates (
 
 Every 15 minutes GitHub Actions runs `scanner.py`, which:
 
-1. **Loads all active KuCoin USDT spot pairs** with $150k+ daily volume
+1. **Loads all active Binance USDT spot pairs** with $150k+ daily volume
 2. **BTC Context Check** — if BTC is in a bear trend, score threshold is raised by +10 to avoid false signals in a down market
 3. **Fear & Greed Check** — if the market is in Extreme Greed (≥80), the score threshold is raised further (euphoric markets are where "pre-breakout" alerts most often turn out to be blow-off tops)
 4. **Market-Wide News Check** — if there's an acute market-wide negative headline (exchange collapse, regulatory crackdown, flash crash) in the last 12h, the whole scan cycle is paused — no new longs into a risk-off tape
@@ -92,9 +92,9 @@ Every 15 minutes GitHub Actions runs `scanner.py`, which:
    - **Relative Strength vs BTC** — coin's % move over the lookback window compared to BTC's — rejects signals that are just market-wide beta, not real alpha
 8. **1-hour Confirmation + Golden/Death Cross** — fetches 1h candles, checks if higher timeframe agrees, and evaluates the 50/200 EMA regime (fresh golden cross = bonus, death-cross regime = penalty)
 9. **Composite Score (0–100)** — each indicator contributes weighted points
-10. **Binance Cross-Validation** — if the same pair shows a volume spike on Binance too, it's a stronger signal. No Binance listing → signal is kept but score is reduced by 10 pts
-11. **Alert Cooldown** — same symbol won't be alerted again for 60 minutes
-12. **Telegram Alert** — rich message with score, reasons, SL/TP, institutional context (regime, relative strength, Fear & Greed), TradingView link
+10. **Alert Cooldown** — same symbol won't be alerted again for 60 minutes
+11. **Telegram Alert** — rich message with score, reasons, SL/TP, institutional context (regime, relative strength, Fear & Greed), TradingView link
+12. **Auto-Trade (optional, off by default)** — if `AUTO_TRADING_ENABLED` is on, places a real Binance order sized by risk %, see [Live Auto-Trading](#live-auto-trading-real-money) below
 
 ### Scoring Weights
 
@@ -145,7 +145,7 @@ In your repo → **Settings → Secrets and variables → Actions → New reposi
 3. Click **Run workflow** → **Run workflow** (manual trigger)
 4. After ~2 minutes check Telegram — you should receive a silent summary message
 
-That's it. The system runs automatically every 15 minutes from now on.
+That's it. The system runs automatically every 15 minutes from now on, sending Telegram alerts only — no funds are ever touched. To let it place real trades, see [Live Auto-Trading](#live-auto-trading-real-money) below (separate opt-in, off by default).
 
 ---
 
@@ -159,11 +159,13 @@ pre-breakout-scanner/
 ├── tuner.py            ← Reads trade_log.jsonl, suggests weight/threshold changes
 ├── indicators.py       ← All TA indicators, incl. golden/death cross, divergence, relative strength
 ├── news.py             ← Fear & Greed + keyless news sentiment (RSS feeds, alternative.me)
+├── trader.py           ← Live auto-trading: position sizing, order execution, daily loss circuit breaker (off by default)
 ├── config.py           ← All tunable parameters in one place
 ├── requirements.txt    ← Only 2 dependencies: ccxt + requests
 ├── state/
 │   ├── known_symbols.json   ← Auto-updated each run (tracks symbols + cooldowns)
 │   ├── trade_log.jsonl      ← Every resolved trade, live + backtest (the learning data)
+│   ├── trading_state.json   ← Auto-trading only: open positions, daily PnL, halt flag
 │   └── tuning_report.md     ← Latest self-tuning analysis (regenerated weekly)
 └── .github/
     └── workflows/
@@ -183,7 +185,6 @@ All parameters are in **`config.py`**. Key ones:
 | `SCORE_THRESHOLD` | 65 | Lower = more alerts, Higher = fewer, high-conviction only |
 | `MIN_QUOTE_VOLUME_24H` | $150,000 | Increase to focus on larger caps only |
 | `ALERT_COOLDOWN_MINUTES` | 60 | Prevent alert spam on same symbol |
-| `CROSS_VALIDATE` | True | Set False to skip Binance check (faster) |
 | `MAX_ALERTS_PER_RUN` | 10 | Cap to prevent Telegram flood |
 | `USE_GOLDEN_CROSS` / `USE_DIVERGENCE_DETECTION` / `USE_RELATIVE_STRENGTH` | True | Set False to disable any individual institutional signal |
 | `USE_NEWS_FILTER` / `USE_FEAR_GREED` | True | Set False to disable the news/sentiment layer entirely (no network calls to alternative.me / news RSS feeds) |
@@ -219,8 +220,50 @@ Signals:
   ✅ Early price move (+3.1%) — not late
 
 📈 Open on TradingView
-KuCoin • 14:30 UTC
+Binance • 14:30 UTC
 ```
+
+---
+
+## Live Auto-Trading (real money)
+
+**Off by default.** With `AUTO_TRADING_ENABLED` unset (or `false`), nothing in this section runs — the scanner only ever sends Telegram alerts, exactly as before. Turning this on lets the scanner place real Binance orders with real money on every qualifying signal, with no human in the loop per trade. Read this whole section before enabling it.
+
+### How it works
+
+- **Venue**: Binance only (spot). Trading and market data both come from Binance — no cross-exchange slippage between what the scanner saw and what got filled.
+- **Position sizing**: risk-based, not a fixed coin amount. Quantity is sized so that if the Stop Loss is hit, the loss equals a `risk_pct` of current account equity. `risk_pct` scales linearly with the signal's score — a 65-score signal risks `MIN_TRADE_RISK_PCT` (default 1%), a 100-score signal risks `MAX_TRADE_RISK_PCT` (default 2%). A `MAX_POSITION_NOTIONAL_PCT` cap (default 20%) additionally protects against an unusually tight stop sizing an oversized position.
+- **Daily loss circuit breaker**: `MAX_DAILY_LOSS_PCT` (default 5%). Once realized losses for the current UTC day reach this % of the day's starting equity, auto-trading **halts completely** — no new entries — until a human clears it. It does **not** reset automatically at midnight.
+- **Order management**: on entry, a market buy is placed, followed by a `STOP_LOSS_LIMIT` sell (protective stop) and a `LIMIT` sell (take-profit target). These are two independent orders, not a native Binance OCO — every scan cycle (~15 min) `trader.reconcile_positions()` checks both, cancels whichever didn't fill once the other does, and logs the realized PnL against the daily loss cap. **This means protective orders are only reconciled every ~15 minutes, not continuously — this is a batch system, not a real-time desk.**
+- **Concurrency cap**: `MAX_CONCURRENT_POSITIONS` (default 5) — no new entries once that many auto-trades are open.
+- If the stop order fails to place right after a buy fills, the position is closed immediately at market rather than left unprotected, and you're notified on Telegram.
+
+### Setup
+
+1. On Binance, create a **dedicated sub-account** for this bot (isolates its funds/trades from your main account) and fund it with only what you're willing to have this system trade.
+2. Create an API key on that sub-account with **Enable Spot & Margin Trading only — leave "Enable Withdrawals" OFF.** This is the single most important safety step: even a fully compromised key can't move funds out, only trade with what's already there.
+3. In the repo → **Settings → Secrets and variables → Actions**:
+   - **Secrets** tab: add `BINANCE_API_KEY` and `BINANCE_API_SECRET`.
+   - **Variables** tab: add `AUTO_TRADING_ENABLED` = `true`, and `BINANCE_TESTNET` = `true` initially.
+4. Run the workflow manually a few times with `BINANCE_TESTNET=true` and watch the Telegram messages ("AUTO-TRADE OPENED", TP/SL results) to confirm sizing and behavior look right against Binance's testnet (fake funds, real-ish order book).
+5. Only once you're satisfied, change the `BINANCE_TESTNET` **variable** to `false`. From that point every trade uses real funds.
+
+### Kill switch
+
+Set the `AUTO_TRADING_ENABLED` repo **variable** to `false` — takes effect on the next scheduled run (within 15 min), no code change or redeploy needed. This stops new entries; it does **not** cancel already-open protective orders (those stay live on Binance until they fill or you cancel them manually).
+
+If the daily loss cap trips, the scanner halts itself automatically and pings Telegram. To resume after reviewing what happened:
+
+```
+python trader.py            # view current state (open positions, halt reason, daily PnL)
+python trader.py --resume   # clear the halt flag
+```
+
+### What this does NOT do
+
+- No leverage, no margin, no futures/derivatives — spot only.
+- No partial take-profit — the automated exit targets TP1 only (the alert's TP2 is informational).
+- No protection against Binance API outages, network failures between GitHub Actions runs, or the ~15-minute reconciliation gap mid-cycle — this is documented risk, not solved risk.
 
 ---
 
@@ -237,14 +280,14 @@ KuCoin • 14:30 UTC
 
 ## نظرة عامة بالعربية
 
-هذا النظام يرصد الأزواج التي على وشك الاختراق (Pre-Breakout) في منصة KuCoin قبل أن يحدث الاختراق، ويرسل تنبيهاً على Telegram يحتوي على:
+هذا النظام يرصد الأزواج التي على وشك الاختراق (Pre-Breakout) في منصة Binance قبل أن يحدث الاختراق، ويرسل تنبيهاً على Telegram يحتوي على:
 
 - **السكور من 100** مع أسباب مفصّلة
 - **11 مؤشراً فنياً** تشمل: انفجار الحجم، RSI، MACD، BB Squeeze، OBV، CMF، ADL+Chaikin، دونشيان، قناة الانحدار الخطي، Williams %R، StochRSI
 - **تأكيد على الفريم الساعي (1h)**
-- **تأكيد متقاطع مع Binance**
 - **فلتر BTC** لتجنب الإشارات الخاطئة في سوق هابط
 - **Stop Loss وTarget مبنيان على ATR**
 - **رابط TradingView مباشر**
+- **تنفيذ تلقائي اختياري (مطفأ افتراضياً)** — راجع قسم [Live Auto-Trading](#live-auto-trading-real-money) قبل تفعيله؛ فيه سقف خسارة يومي 5%، وحد أقصى 1-2% من الرصيد لكل صفقة، ومفتاح إيقاف فوري (kill switch)
 
 جميع الإعدادات القابلة للتعديل موجودة في `config.py`.

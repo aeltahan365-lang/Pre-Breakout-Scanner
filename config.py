@@ -6,11 +6,10 @@ No other file needs to be touched for parameter changes.
 """
 
 # ── Exchanges ──────────────────────────────────────────────────────
-# Primary exchange is always KuCoin. Binance is used for cross-validation.
-# Set CROSS_VALIDATE = False to skip Binance (faster but less precise).
-PRIMARY_EXCHANGE   = "kucoin"
-SECONDARY_EXCHANGE = "binance"
-CROSS_VALIDATE     = True          # require signal on ≥1 more exchange
+# Binance is the sole exchange for both scanning and live execution — data
+# and order routing come from the same venue, so there's no cross-exchange
+# slippage between "what the scanner saw" and "what got filled."
+PRIMARY_EXCHANGE   = "binance"
 QUOTE              = "USDT"
 
 # ── Timeframes ────────────────────────────────────────────────────
@@ -30,7 +29,7 @@ RATE_LIMIT_SLEEP      = 0.15       # seconds between API calls
 #    low, or where most trades were sell-side, is NOT a breakout) ──
 MIN_CLV                  = 0.55    # close must sit in upper 55% of candle range
 MIN_TAKER_BUY_RATIO      = 0.55    # ≥55% of recent traded volume must be buyer-initiated
-USE_CRYPTOCOM_VALIDATION = True    # also cross-check buy ratio on Crypto.com when the pair is listed there (bonus confirmation, never a hard block — most KuCoin small-caps aren't listed on Crypto.com)
+USE_CRYPTOCOM_VALIDATION = True    # also cross-check buy ratio on Crypto.com when the pair is listed there (bonus confirmation, never a hard block — most Binance small-caps aren't listed on Crypto.com)
 
 # ── Order Book Imbalance (reject breakouts facing a sell wall) ───
 ORDER_BOOK_DEPTH_PCT      = 0.02   # measure depth within ±2% of best bid/ask
@@ -152,3 +151,47 @@ TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
 # ── TradingView base URL ──────────────────────────────────────────
 # Used to generate clickable chart links in alerts.
 TV_BASE = "https://www.tradingview.com/chart/?symbol={exchange}:{base}USDT"
+
+# ── Live Auto-Trading (real money — read this whole section) ──────
+# OFF by default. This flag is the master kill switch: with it False (or
+# unset) the scanner only ever alerts on Telegram, exactly like before —
+# no order is ever placed. Flip it to "true" as a GitHub Actions repo
+# *variable* (Settings → Secrets and variables → Actions → Variables tab,
+# NOT a secret) so it can be toggled instantly without a code push/redeploy.
+AUTO_TRADING_ENABLED = os.environ.get("AUTO_TRADING_ENABLED", "false").strip().lower() == "true"
+
+# Binance API credentials — must be a Trade-only key (NO withdrawal
+# permission) on a dedicated sub-account, never the main account key.
+# Set as GitHub Actions *secrets*, never committed to the repo.
+BINANCE_API_KEY    = os.environ.get("BINANCE_API_KEY", "")
+BINANCE_API_SECRET = os.environ.get("BINANCE_API_SECRET", "")
+
+# Binance's spot testnet (testnet.binance.vision) — paper-trades against a
+# simulated order book with fake funds. Defaults to True so a first-time
+# setup can't accidentally fire real orders; the user must deliberately set
+# BINANCE_TESTNET=false (as a repo variable) once they've watched it behave
+# correctly on testnet and are ready to risk real funds.
+BINANCE_TESTNET = os.environ.get("BINANCE_TESTNET", "true").strip().lower() == "true"
+
+# ── Position sizing — risk-based, scaled by signal confidence ─────
+# Quantity is sized so that if the Stop Loss is hit, the realized loss
+# equals `risk_pct` of account equity — never a fixed coin quantity.
+# risk_pct itself scales linearly with score: SCORE_THRESHOLD -> MIN,
+# 100 -> MAX. A 65-score signal risks the least; a 100-score signal risks
+# the most (still capped at MAX_TRADE_RISK_PCT).
+MIN_TRADE_RISK_PCT     = 1.0    # % of equity risked at the alert threshold score
+MAX_TRADE_RISK_PCT     = 2.0    # % of equity risked at a perfect (100) score
+MAX_POSITION_NOTIONAL_PCT = 20.0  # hard cap on position value regardless of stop distance
+                                    # (protects against a too-tight SL sizing an oversized position)
+MAX_CONCURRENT_POSITIONS = 5    # refuse new entries once this many auto-trades are open
+
+# ── Daily loss circuit breaker ─────────────────────────────────────
+# Realized PnL (SL/TP fills only, not unrealized) is tracked per UTC day.
+# Once losses reach this % of the day's starting equity, AUTO_TRADING
+# halts completely — no new entries — until a human clears the halt flag
+# in state/trading_state.json (or re-runs `python trader.py --resume`
+# after reviewing what happened). It does NOT reset automatically at
+# midnight; a halt always requires a human look.
+MAX_DAILY_LOSS_PCT = 5.0
+
+TRADING_STATE_FILE = "state/trading_state.json"   # open positions, daily PnL, halt flag
