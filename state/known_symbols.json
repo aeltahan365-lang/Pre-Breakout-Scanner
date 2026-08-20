@@ -844,40 +844,41 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-20T07:43:24.134017+00:00",
+  "last_run": "2026-08-20T08:23:12.240975+00:00",
   "alert_history": {
     "SYN/USDT": "2026-08-20T06:52:24.405614+00:00",
-    "QNT/USDT": "2026-08-20T07:43:22.748489+00:00"
+    "QNT/USDT": "2026-08-20T07:43:22.748489+00:00",
+    "DOGE/USDT": "2026-08-20T08:23:10.918384+00:00"
   },
   "stats": {
     "wins": 101,
-    "losses": 142,
+    "losses": 143,
     "expired": 0
   },
   "pending_outcomes": [
     {
-      "symbol": "QNT/USDT",
-      "alert_time": "2026-08-20T07:43:22.748506+00:00",
-      "score": 94,
-      "entry": 59.531,
-      "sl": 59.203751705,
-      "tp1": 59.96733106,
-      "tp2": 60.294579354999996,
+      "symbol": "DOGE/USDT",
+      "alert_time": "2026-08-20T08:23:10.918400+00:00",
+      "score": 72,
+      "entry": 0.07666,
+      "sl": 0.07609876,
+      "tp1": 0.07740832,
+      "tp2": 0.07796956000000001,
       "components": {
-        "rsi_healthy": true,
+        "rsi_healthy": false,
         "macd_bullish_cross": false,
         "bb_squeeze": false,
-        "donchian_breakout": false,
+        "donchian_breakout": true,
         "trend_bullish": true,
         "adl_accumulating": true,
         "obv_rising": true,
-        "htf_confirmed": true,
-        "golden_cross_bullish": false,
-        "death_cross_active": true,
-        "bullish_divergence": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
         "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": false
+        "rs_leading": false,
+        "early_move": true
       }
     }
   ]
