@@ -845,8 +845,10 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-20T22:59:40.664813+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-20T23:26:17.731176+00:00",
+  "alert_history": {
+    "ZEN/USDT": "2026-08-20T23:26:16.277812+00:00"
+  },
   "stats": {
     "wins": 109,
     "losses": 147,
@@ -863,6 +865,31 @@
       "tp2": 0.006484305,
       "components": {
         "news_catalyst": true
+      }
+    },
+    {
+      "symbol": "ZEN/USDT",
+      "alert_time": "2026-08-20T23:26:16.277828+00:00",
+      "score": 100,
+      "entry": 4.453,
+      "sl": 4.426190305,
+      "tp1": 4.48874626,
+      "tp2": 4.515555955,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": true,
+        "donchian_breakout": true,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": true,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": false
       }
     }
   ]
