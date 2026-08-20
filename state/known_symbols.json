@@ -37,6 +37,7 @@
     "ALEX/USDT",
     "ALGO/USDT",
     "ALICE/USDT",
+    "ALIGN/USDT",
     "ALKIMI/USDT",
     "ALLO/USDT",
     "ALPINE/USDT",
@@ -844,10 +845,8 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-20T18:19:23.414902+00:00",
-  "alert_history": {
-    "OP/USDT": "2026-08-20T16:35:08.739741+00:00"
-  },
+  "last_run": "2026-08-20T19:06:58.778914+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 109,
     "losses": 147,
