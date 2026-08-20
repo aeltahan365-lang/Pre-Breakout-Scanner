@@ -845,12 +845,27 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-20T20:09:31.798996+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-20T20:50:50.599282+00:00",
+  "alert_history": {
+    "MOVE/USDT": "2026-08-20T20:50:49.410244+00:00"
+  },
   "stats": {
     "wins": 109,
     "losses": 147,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "MOVE/USDT",
+      "alert_time": "2026-08-20T20:50:49.410261+00:00",
+      "score": null,
+      "entry": 0.00641,
+      "sl": 0.006378155,
+      "tp1": 0.00645246,
+      "tp2": 0.006484305,
+      "components": {
+        "news_catalyst": true
+      }
+    }
+  ]
 }
