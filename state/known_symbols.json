@@ -844,40 +844,14 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-20T05:31:10.306212+00:00",
+  "last_run": "2026-08-20T06:02:14.832052+00:00",
   "alert_history": {
     "SIREN/USDT": "2026-08-20T04:14:23.625437+00:00"
   },
   "stats": {
-    "wins": 100,
+    "wins": 101,
     "losses": 141,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "SIREN/USDT",
-      "alert_time": "2026-08-20T04:14:23.625454+00:00",
-      "score": 76,
-      "entry": 0.05088,
-      "sl": 0.05006391,
-      "tp1": 0.05196812,
-      "tp2": 0.05278421,
-      "components": {
-        "rsi_healthy": true,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": false,
-        "trend_bullish": true,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": false,
-        "golden_cross_bullish": false,
-        "death_cross_active": true,
-        "bullish_divergence": false,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": true
-      }
-    }
-  ]
+  "pending_outcomes": []
 }
