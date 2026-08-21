@@ -845,46 +845,23 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-21T23:25:34.744937+00:00",
+  "last_run": "2026-08-21T23:53:07.304016+00:00",
   "alert_history": {
     "STABLE/USDT": "2026-08-21T22:25:54.607603+00:00",
     "EDGE/USDT": "2026-08-21T22:55:19.801414+00:00",
     "VET/USDT": "2026-08-21T22:55:21.205952+00:00",
     "FLR/USDT": "2026-08-21T22:55:22.619925+00:00",
     "NES/USDT": "2026-08-21T22:55:24.008043+00:00",
-    "ZEN/USDT": "2026-08-21T23:25:33.417003+00:00"
+    "ZEN/USDT": "2026-08-21T23:25:33.417003+00:00",
+    "AERO/USDT": "2026-08-21T23:53:04.462158+00:00",
+    "WBTC/USDT": "2026-08-21T23:53:05.861211+00:00"
   },
   "stats": {
-    "wins": 120,
+    "wins": 121,
     "losses": 164,
     "expired": 0
   },
   "pending_outcomes": [
-    {
-      "symbol": "EDGE/USDT",
-      "alert_time": "2026-08-21T22:55:19.801432+00:00",
-      "score": 92,
-      "entry": 0.375,
-      "sl": 0.371027115,
-      "tp1": 0.38029718,
-      "tp2": 0.384270065,
-      "components": {
-        "rsi_healthy": true,
-        "macd_bullish_cross": false,
-        "bb_squeeze": true,
-        "donchian_breakout": false,
-        "trend_bullish": false,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": false,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": false,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": true
-      }
-    },
     {
       "symbol": "VET/USDT",
       "alert_time": "2026-08-21T22:55:21.205968+00:00",
@@ -983,6 +960,56 @@
         "bearish_divergence": false,
         "rs_leading": true,
         "early_move": true
+      }
+    },
+    {
+      "symbol": "AERO/USDT",
+      "alert_time": "2026-08-21T23:53:04.462178+00:00",
+      "score": 90,
+      "entry": 0.4855,
+      "sl": 0.481608655,
+      "tp1": 0.49068846,
+      "tp2": 0.494579805,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": true,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": true,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": false
+      }
+    },
+    {
+      "symbol": "WBTC/USDT",
+      "alert_time": "2026-08-21T23:53:05.861230+00:00",
+      "score": 72,
+      "entry": 78575.15,
+      "sl": 78370.08330128,
+      "tp1": 78848.57226495999,
+      "tp2": 79053.63896368,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": true,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": false
       }
     }
   ]
