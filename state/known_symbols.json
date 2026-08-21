@@ -845,14 +845,40 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-21T02:41:42.559032+00:00",
+  "last_run": "2026-08-21T03:39:48.132926+00:00",
   "alert_history": {
-    "NIL/USDT": "2026-08-21T01:11:42.905965+00:00"
+    "VVV/USDT": "2026-08-21T03:39:46.377071+00:00"
   },
   "stats": {
     "wins": 112,
     "losses": 147,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "VVV/USDT",
+      "alert_time": "2026-08-21T03:39:46.377091+00:00",
+      "score": 86,
+      "entry": 14.847,
+      "sl": 14.681294565,
+      "tp1": 15.06794058,
+      "tp2": 15.233646015,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": true,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": true,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
+      }
+    }
+  ]
 }
