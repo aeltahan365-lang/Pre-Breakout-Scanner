@@ -845,27 +845,81 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-21T08:12:23.006531+00:00",
+  "last_run": "2026-08-21T09:01:48.658366+00:00",
   "alert_history": {
-    "PNUT/USDT": "2026-08-21T06:45:23.053479+00:00",
     "BIO/USDT": "2026-08-21T07:33:03.215175+00:00",
     "DAG/USDT": "2026-08-21T07:33:04.735434+00:00",
-    "TRAC/USDT": "2026-08-21T08:12:21.638596+00:00"
+    "TRAC/USDT": "2026-08-21T08:12:21.638596+00:00",
+    "MET/USDT": "2026-08-21T09:01:41.182966+00:00",
+    "EUL/USDT": "2026-08-21T09:01:42.691146+00:00",
+    "EDGE/USDT": "2026-08-21T09:01:44.210510+00:00",
+    "NES/USDT": "2026-08-21T09:01:45.702441+00:00",
+    "VVV/USDT": "2026-08-21T09:01:47.181603+00:00"
   },
   "stats": {
-    "wins": 113,
+    "wins": 114,
     "losses": 150,
     "expired": 0
   },
   "pending_outcomes": [
     {
-      "symbol": "TRAC/USDT",
-      "alert_time": "2026-08-21T08:12:21.638612+00:00",
+      "symbol": "MET/USDT",
+      "alert_time": "2026-08-21T09:01:41.182985+00:00",
+      "score": 100,
+      "entry": 0.2265,
+      "sl": 0.22347549,
+      "tp1": 0.23053268000000002,
+      "tp2": 0.23355719,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": true,
+        "bb_squeeze": true,
+        "donchian_breakout": true,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": true,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": false,
+        "early_move": true
+      }
+    },
+    {
+      "symbol": "EUL/USDT",
+      "alert_time": "2026-08-21T09:01:42.691166+00:00",
       "score": 78,
-      "entry": 0.2874,
-      "sl": 0.28499215499999997,
-      "tp1": 0.29061046,
-      "tp2": 0.293018305,
+      "entry": 1.261,
+      "sl": 1.245730195,
+      "tp1": 1.2813597399999999,
+      "tp2": 1.2966295449999998,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": true,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
+      }
+    },
+    {
+      "symbol": "EDGE/USDT",
+      "alert_time": "2026-08-21T09:01:44.210529+00:00",
+      "score": 67,
+      "entry": 0.3547,
+      "sl": 0.350344825,
+      "tp1": 0.3605069,
+      "tp2": 0.364862075,
       "components": {
         "rsi_healthy": false,
         "macd_bullish_cross": false,
@@ -879,8 +933,58 @@
         "death_cross_active": false,
         "bullish_divergence": false,
         "bearish_divergence": false,
-        "rs_leading": true,
+        "rs_leading": false,
+        "early_move": true
+      }
+    },
+    {
+      "symbol": "NES/USDT",
+      "alert_time": "2026-08-21T09:01:45.702460+00:00",
+      "score": 66,
+      "entry": 0.2198,
+      "sl": 0.21899849,
+      "tp1": 0.22086867999999998,
+      "tp2": 0.22167019,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": true,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": false,
         "early_move": false
+      }
+    },
+    {
+      "symbol": "VVV/USDT",
+      "alert_time": "2026-08-21T09:01:47.181621+00:00",
+      "score": 66,
+      "entry": 16.248,
+      "sl": 15.966806205000001,
+      "tp1": 16.62292506,
+      "tp2": 16.904118855,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": false,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
       }
     }
   ]
