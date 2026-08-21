@@ -845,7 +845,7 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-21T20:27:11.251358+00:00",
+  "last_run": "2026-08-21T20:54:13.387649+00:00",
   "alert_history": {
     "SKY/USDT": "2026-08-21T19:02:29.408273+00:00",
     "XTZ/USDT": "2026-08-21T19:32:00.189190+00:00",
@@ -855,35 +855,10 @@
   },
   "stats": {
     "wins": 119,
-    "losses": 161,
+    "losses": 163,
     "expired": 0
   },
   "pending_outcomes": [
-    {
-      "symbol": "PAXG/USDT",
-      "alert_time": "2026-08-21T19:53:38.699476+00:00",
-      "score": 72,
-      "entry": 4608.02,
-      "sl": 4597.92310529,
-      "tp1": 4621.4825262800005,
-      "tp2": 4631.5794209900005,
-      "components": {
-        "rsi_healthy": true,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": false,
-        "trend_bullish": false,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": true,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": false,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": false
-      }
-    },
     {
       "symbol": "ETHFI/USDT",
       "alert_time": "2026-08-21T20:27:08.547670+00:00",
@@ -907,31 +882,6 @@
         "bearish_divergence": false,
         "rs_leading": true,
         "early_move": false
-      }
-    },
-    {
-      "symbol": "ESPORTS/USDT",
-      "alert_time": "2026-08-21T20:27:09.906086+00:00",
-      "score": 70,
-      "entry": 0.0161,
-      "sl": 0.015900695,
-      "tp1": 0.01636574,
-      "tp2": 0.016565045,
-      "components": {
-        "rsi_healthy": true,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": false,
-        "trend_bullish": false,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": true,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": false,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": true
       }
     }
   ]
