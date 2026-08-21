@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 import ccxt
 
 import config as cfg
-from engine import evaluate_candidate, append_trade_log, load_trade_log
+from engine import evaluate_candidate, evaluate_reversal_candidate, append_trade_log, load_trade_log
 
 
 def log(msg: str):
@@ -110,8 +110,50 @@ def resolve_outcome(future_15m: list, sl: float, tp1: float, tp2: float, max_bar
     return "expired", resolved_ts
 
 
+def _log_candidate(symbol: str, pipeline: str, result: dict, window: list, candles_15m: list,
+                   i: int, existing_keys: set) -> bool:
+    """Resolves one candidate against its own future candles and appends to
+    the trade log if not already logged. Returns True if newly logged."""
+    alert_ts  = window[-1]["ts"]
+    alert_iso = datetime.fromtimestamp(alert_ts / 1000, tz=timezone.utc).isoformat()
+    key = (symbol, alert_iso, "backtest", pipeline)
+    if key in existing_keys:
+        return False
+
+    future = candles_15m[i + 1:]
+    outcome, resolved_ts = resolve_outcome(future, result["sl"], result["tp1"], result["tp2"],
+                                           cfg.BACKTEST_MAX_HOLD_BARS)
+    resolved_iso = (datetime.fromtimestamp(resolved_ts / 1000, tz=timezone.utc).isoformat()
+                    if resolved_ts else alert_iso)
+    append_trade_log({
+        "symbol":        symbol,
+        "alert_time":    alert_iso,
+        "resolved_time": resolved_iso,
+        "score":         result["score"],
+        "entry":         result["price"],
+        "sl":            result["sl"],
+        "tp1":           result["tp1"],
+        "tp2":           result["tp2"],
+        "outcome":       outcome,
+        "components":    result["components"],
+        "pipeline":      pipeline,
+        "source":        "backtest",
+    })
+    existing_keys.add(key)
+    return True
+
+
 def backtest_symbol(exchange, symbol: str, until_ms: int, btc_15m: list, btc_ts: list,
                     existing_keys: set) -> dict:
+    """
+    Walks forward through history evaluating BOTH pipelines at every step:
+      - breakout : evaluate_candidate()          (v2/v3, unchanged)
+      - reversal : evaluate_reversal_candidate()  (v4 primary)
+    `derivatives` (funding rate / open interest) is live-only and can't be
+    replayed against history for free — reversal candidates are backtested
+    without that bonus, same documented limitation as the breakout
+    pipeline's taker buy/sell ratio and order book checks.
+    """
     since_15m = until_ms - (cfg.BACKTEST_DAYS + 4) * 86400 * 1000       # padding for indicator lookback
     since_1h  = until_ms - (cfg.BACKTEST_DAYS + 12) * 86400 * 1000      # padding for 50/200 EMA lookback
 
@@ -140,39 +182,23 @@ def backtest_symbol(exchange, symbol: str, until_ms: int, btc_15m: list, btc_ts:
         htf_window = _window_ending_at(candles_1h, ts_1h, window[-1]["ts"], cfg.CANDLES_CONFIRM)
         btc_window = _window_ending_at(btc_15m, btc_ts, window[-1]["ts"], cfg.RS_LOOKBACK + 5)
 
-        result = evaluate_candidate(window, candles_1h=htf_window or None, btc_candles_15m=btc_window or None)
-        if result is None or result["score"] < cfg.BACKTEST_SCORE_FLOOR or result["sl"] is None:
-            i += 1
-            continue
+        any_hit = False
 
-        candidates += 1
-        alert_ts = window[-1]["ts"]
-        alert_iso = datetime.fromtimestamp(alert_ts / 1000, tz=timezone.utc).isoformat()
-        key = (symbol, alert_iso, "backtest")
+        breakout = evaluate_candidate(window, candles_1h=htf_window or None, btc_candles_15m=btc_window or None)
+        if breakout is not None and breakout["score"] >= cfg.BACKTEST_SCORE_FLOOR and breakout["sl"] is not None:
+            candidates += 1
+            any_hit = True
+            if _log_candidate(symbol, "breakout", breakout, window, candles_15m, i, existing_keys):
+                logged += 1
 
-        if key not in existing_keys:
-            future = candles_15m[i + 1:]
-            outcome, resolved_ts = resolve_outcome(future, result["sl"], result["tp1"], result["tp2"],
-                                                   cfg.BACKTEST_MAX_HOLD_BARS)
-            resolved_iso = (datetime.fromtimestamp(resolved_ts / 1000, tz=timezone.utc).isoformat()
-                            if resolved_ts else alert_iso)
-            append_trade_log({
-                "symbol":        symbol,
-                "alert_time":    alert_iso,
-                "resolved_time": resolved_iso,
-                "score":         result["score"],
-                "entry":         result["price"],
-                "sl":            result["sl"],
-                "tp1":           result["tp1"],
-                "tp2":           result["tp2"],
-                "outcome":       outcome,
-                "components":    result["components"],
-                "source":        "backtest",
-            })
-            existing_keys.add(key)
-            logged += 1
+        reversal = evaluate_reversal_candidate(window, candles_1h=htf_window or None, btc_candles_15m=btc_window or None)
+        if reversal is not None and reversal["score"] >= cfg.BACKTEST_SCORE_FLOOR and reversal["sl"] is not None:
+            candidates += 1
+            any_hit = True
+            if _log_candidate(symbol, "reversal", reversal, window, candles_15m, i, existing_keys):
+                logged += 1
 
-        i += cooldown_bars   # mirror live's alert cooldown — don't log the same move 20 times
+        i += cooldown_bars if any_hit else 1   # mirror live's alert cooldown — don't log the same move 20 times
 
     return {"symbol": symbol, "candidates": candidates, "logged": logged}
 
@@ -192,7 +218,8 @@ def main():
     log(f"📡 BTC/USDT 15m candles loaded: {len(btc_15m)}")
 
     existing = load_trade_log()
-    existing_keys = {(r.get("symbol"), r.get("alert_time"), r.get("source")) for r in existing}
+    existing_keys = {(r.get("symbol"), r.get("alert_time"), r.get("source"), r.get("pipeline", "breakout"))
+                     for r in existing}
     log(f"🗂️  Existing trade log entries: {len(existing)} (deduping against these)")
 
     total_candidates = total_logged = 0
