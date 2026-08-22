@@ -845,19 +845,17 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-22T04:10:30.010871+00:00",
+  "last_run": "2026-08-22T04:54:04.311363+00:00",
   "alert_history": {
-    "PYTH/USDT": "2026-08-22T02:25:57.105253+00:00",
-    "SPACE/USDT": "2026-08-22T02:25:58.458773+00:00",
-    "ICNT/USDT": "2026-08-22T02:25:59.738418+00:00",
-    "SOL/USDT": "2026-08-22T02:26:01.095721+00:00",
     "CHIP/USDT": "2026-08-22T03:22:01.216052+00:00",
     "EPIC/USDT": "2026-08-22T04:10:27.373658+00:00",
-    "CRO/USDT": "2026-08-22T04:10:28.710864+00:00"
+    "CRO/USDT": "2026-08-22T04:10:28.710864+00:00",
+    "FOLKS/USDT": "2026-08-22T04:54:01.629267+00:00",
+    "RAVE/USDT": "2026-08-22T04:54:02.958092+00:00"
   },
   "stats": {
-    "wins": 125,
-    "losses": 170,
+    "wins": 126,
+    "losses": 171,
     "expired": 0
   },
   "pending_outcomes": [
@@ -887,22 +885,22 @@
       }
     },
     {
-      "symbol": "EPIC/USDT",
-      "alert_time": "2026-08-22T04:10:27.373676+00:00",
-      "score": 88,
-      "entry": 0.376,
-      "sl": 0.371099305,
-      "tp1": 0.38253426,
-      "tp2": 0.387434955,
+      "symbol": "FOLKS/USDT",
+      "alert_time": "2026-08-22T04:54:01.629280+00:00",
+      "score": 92,
+      "entry": 1.9666,
+      "sl": 1.947544945,
+      "tp1": 1.9920067399999999,
+      "tp2": 2.011061795,
       "components": {
-        "rsi_healthy": true,
+        "rsi_healthy": false,
         "macd_bullish_cross": false,
         "bb_squeeze": false,
         "donchian_breakout": true,
         "trend_bullish": true,
         "adl_accumulating": true,
         "obv_rising": true,
-        "htf_confirmed": false,
+        "htf_confirmed": true,
         "golden_cross_bullish": true,
         "death_cross_active": false,
         "bullish_divergence": false,
@@ -912,13 +910,13 @@
       }
     },
     {
-      "symbol": "CRO/USDT",
-      "alert_time": "2026-08-22T04:10:28.710880+00:00",
-      "score": 83,
-      "entry": 0.06481,
-      "sl": 0.06349178500000001,
-      "tp1": 0.06656762000000001,
-      "tp2": 0.067885835,
+      "symbol": "RAVE/USDT",
+      "alert_time": "2026-08-22T04:54:02.958103+00:00",
+      "score": 71,
+      "entry": 0.331,
+      "sl": 0.32605379500000004,
+      "tp1": 0.33759494,
+      "tp2": 0.342541145,
       "components": {
         "rsi_healthy": false,
         "macd_bullish_cross": false,
@@ -931,7 +929,7 @@
         "golden_cross_bullish": true,
         "death_cross_active": false,
         "bullish_divergence": false,
-        "bearish_divergence": false,
+        "bearish_divergence": true,
         "rs_leading": true,
         "early_move": true
       }
