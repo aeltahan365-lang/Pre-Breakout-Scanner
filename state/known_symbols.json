@@ -845,22 +845,50 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-22T17:53:19.905082+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-22T18:29:12.099315+00:00",
+  "alert_history": {
+    "CHIP/USDT": "2026-08-22T18:29:09.139231+00:00",
+    "ZBCN/USDT": "2026-08-22T18:29:10.605667+00:00"
+  },
   "stats": {
-    "wins": 126,
+    "wins": 127,
     "losses": 176,
     "expired": 0
   },
   "pending_outcomes": [
     {
-      "symbol": "XAI/USDT",
-      "alert_time": "2026-08-22T15:50:48.962793+00:00",
-      "score": 66,
-      "entry": 0.00775,
-      "sl": 0.007678015,
-      "tp1": 0.00784598,
-      "tp2": 0.007917965,
+      "symbol": "CHIP/USDT",
+      "alert_time": "2026-08-22T18:29:09.139248+00:00",
+      "score": 68,
+      "entry": 0.029556,
+      "sl": 0.02929554,
+      "tp1": 0.029903279999999997,
+      "tp2": 0.030163739999999998,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": false,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": false,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": false
+      }
+    },
+    {
+      "symbol": "ZBCN/USDT",
+      "alert_time": "2026-08-22T18:29:10.605679+00:00",
+      "score": 68,
+      "entry": 0.0019596,
+      "sl": 0.0019308300000000001,
+      "tp1": 0.00199796,
+      "tp2": 0.00202673,
       "components": {
         "rsi_healthy": true,
         "macd_bullish_cross": false,
@@ -875,7 +903,7 @@
         "bullish_divergence": false,
         "bearish_divergence": false,
         "rs_leading": false,
-        "early_move": false
+        "early_move": true
       }
     }
   ]
