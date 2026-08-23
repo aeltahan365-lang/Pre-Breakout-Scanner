@@ -845,42 +845,16 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-23T18:04:04.501959+00:00",
+  "last_run": "2026-08-23T18:43:30.315572+00:00",
   "alert_history": {
-    "US/USDT": "2026-08-23T16:54:51.427422+00:00",
-    "QNT/USDT": "2026-08-23T16:25:02.951933+00:00"
+    "US/USDT": "2026-08-23T18:43:29.752329+00:00"
   },
   "stats": {
     "wins": 136,
-    "losses": 185,
+    "losses": 186,
     "expired": 0
   },
   "pending_outcomes": [
-    {
-      "symbol": "TEL/USDT",
-      "alert_time": "2026-08-23T15:35:15.781644+00:00",
-      "score": 66,
-      "entry": 0.00178,
-      "sl": 0.001760785,
-      "tp1": 0.00180562,
-      "tp2": 0.001824835,
-      "components": {
-        "rsi_healthy": true,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": false,
-        "trend_bullish": true,
-        "adl_accumulating": true,
-        "obv_rising": false,
-        "htf_confirmed": false,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": false,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": false
-      }
-    },
     {
       "symbol": "QNT/USDT",
       "alert_time": "2026-08-23T16:25:02.951951+00:00",
@@ -904,6 +878,18 @@
         "bearish_divergence": false,
         "rs_leading": true,
         "early_move": false
+      }
+    },
+    {
+      "symbol": "US/USDT",
+      "alert_time": "2026-08-23T18:43:29.752349+00:00",
+      "score": null,
+      "entry": 0.018916,
+      "sl": 0.018527335,
+      "tp1": 0.01943422,
+      "tp2": 0.019822885,
+      "components": {
+        "news_catalyst": true
       }
     }
   ]
