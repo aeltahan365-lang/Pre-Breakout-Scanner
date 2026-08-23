@@ -845,41 +845,17 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-23T18:43:30.315572+00:00",
+  "last_run": "2026-08-23T19:07:24.209045+00:00",
   "alert_history": {
-    "US/USDT": "2026-08-23T18:43:29.752329+00:00"
+    "US/USDT": "2026-08-23T18:43:29.752329+00:00",
+    "SYRUP/USDT": "2026-08-23T19:07:21.900370+00:00"
   },
   "stats": {
-    "wins": 136,
+    "wins": 137,
     "losses": 186,
     "expired": 0
   },
   "pending_outcomes": [
-    {
-      "symbol": "QNT/USDT",
-      "alert_time": "2026-08-23T16:25:02.951951+00:00",
-      "score": 84,
-      "entry": 64.942,
-      "sl": 64.444555735,
-      "tp1": 65.60525901999999,
-      "tp2": 66.10270328499999,
-      "components": {
-        "rsi_healthy": true,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": false,
-        "trend_bullish": true,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": false,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": false,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": false
-      }
-    },
     {
       "symbol": "US/USDT",
       "alert_time": "2026-08-23T18:43:29.752349+00:00",
@@ -890,6 +866,31 @@
       "tp2": 0.019822885,
       "components": {
         "news_catalyst": true
+      }
+    },
+    {
+      "symbol": "SYRUP/USDT",
+      "alert_time": "2026-08-23T19:07:21.900386+00:00",
+      "score": 90,
+      "entry": 0.1986,
+      "sl": 0.19700622,
+      "tp1": 0.20072504,
+      "tp2": 0.20231882,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": true,
+        "donchian_breakout": false,
+        "trend_bullish": true,
+        "adl_accumulating": false,
+        "obv_rising": true,
+        "htf_confirmed": true,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
       }
     }
   ]
