@@ -845,40 +845,14 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-23T09:01:37.963357+00:00",
+  "last_run": "2026-08-23T09:32:30.838857+00:00",
   "alert_history": {
     "VET/USDT": "2026-08-23T09:01:36.458514+00:00"
   },
   "stats": {
-    "wins": 129,
+    "wins": 130,
     "losses": 180,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "VET/USDT",
-      "alert_time": "2026-08-23T09:01:36.458528+00:00",
-      "score": 82,
-      "entry": 0.005482,
-      "sl": 0.005442115,
-      "tp1": 0.00553518,
-      "tp2": 0.005575065,
-      "components": {
-        "rsi_healthy": true,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": false,
-        "trend_bullish": false,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": false,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": true,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": false
-      }
-    }
-  ]
+  "pending_outcomes": []
 }
