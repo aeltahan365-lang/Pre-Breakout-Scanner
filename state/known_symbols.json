@@ -205,6 +205,7 @@
     "DENT/USDT",
     "DEUS/USDT",
     "DEXE/USDT",
+    "DGAI/USDT",
     "DGB/USDT",
     "DIA/USDT",
     "DIN/USDT",
@@ -845,11 +846,8 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-24T07:40:37.907824+00:00",
-  "alert_history": {
-    "PEOPLE/USDT": "2026-08-24T06:28:13.942846+00:00",
-    "AERO/USDT": "2026-08-24T06:28:15.393441+00:00"
-  },
+  "last_run": "2026-08-24T08:30:58.748588+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 139,
     "losses": 199,
