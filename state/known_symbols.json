@@ -846,15 +846,13 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-25T02:42:37.236975+00:00",
+  "last_run": "2026-08-25T03:35:43.323712+00:00",
   "alert_history": {
-    "ZRO/USDT": "2026-08-25T01:29:13.349312+00:00",
-    "STRK/USDT": "2026-08-25T01:29:14.691240+00:00",
     "DOGS/USDT": "2026-08-25T02:42:34.518535+00:00",
     "SYRUP/USDT": "2026-08-25T02:42:35.854395+00:00"
   },
   "stats": {
-    "wins": 143,
+    "wins": 145,
     "losses": 208,
     "expired": 0
   },
@@ -878,56 +876,6 @@
         "htf_confirmed": false,
         "golden_cross_bullish": false,
         "death_cross_active": true,
-        "bullish_divergence": false,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": true
-      }
-    },
-    {
-      "symbol": "ZRO/USDT",
-      "alert_time": "2026-08-25T01:29:13.349324+00:00",
-      "score": 86,
-      "entry": 1.1212,
-      "sl": 1.1055922599999999,
-      "tp1": 1.14201032,
-      "tp2": 1.15761806,
-      "components": {
-        "rsi_healthy": true,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": true,
-        "trend_bullish": false,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": false,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": true,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": true
-      }
-    },
-    {
-      "symbol": "DOGS/USDT",
-      "alert_time": "2026-08-25T02:42:34.518553+00:00",
-      "score": 72,
-      "entry": 4.125e-05,
-      "sl": 4.086e-05,
-      "tp1": 4.177e-05,
-      "tp2": 4.216e-05,
-      "components": {
-        "rsi_healthy": false,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": true,
-        "trend_bullish": true,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": true,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
         "bullish_divergence": false,
         "bearish_divergence": false,
         "rs_leading": true,
