@@ -847,10 +847,8 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-25T11:09:32.318871+00:00",
-  "alert_history": {
-    "POPCAT/USDT": "2026-08-25T09:23:37.834663+00:00"
-  },
+  "last_run": "2026-08-25T11:47:00.944700+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 148,
     "losses": 213,
