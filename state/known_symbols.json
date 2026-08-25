@@ -846,38 +846,37 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-25T08:43:04.126317+00:00",
+  "last_run": "2026-08-25T09:23:39.416362+00:00",
   "alert_history": {
-    "CYS/USDT": "2026-08-25T07:02:11.470274+00:00",
-    "KAS/USDT": "2026-08-25T07:02:12.991059+00:00"
+    "POPCAT/USDT": "2026-08-25T09:23:37.834663+00:00"
   },
   "stats": {
-    "wins": 147,
+    "wins": 148,
     "losses": 212,
     "expired": 0
   },
   "pending_outcomes": [
     {
-      "symbol": "CYS/USDT",
-      "alert_time": "2026-08-25T07:02:11.470289+00:00",
-      "score": 100,
-      "entry": 0.65017,
-      "sl": 0.63880357,
-      "tp1": 0.66532524,
-      "tp2": 0.6766916700000001,
+      "symbol": "POPCAT/USDT",
+      "alert_time": "2026-08-25T09:23:37.834682+00:00",
+      "score": 65,
+      "entry": 0.06569,
+      "sl": 0.06451238,
+      "tp1": 0.06726016,
+      "tp2": 0.06843778,
       "components": {
-        "rsi_healthy": true,
+        "rsi_healthy": false,
         "macd_bullish_cross": true,
-        "bb_squeeze": true,
+        "bb_squeeze": false,
         "donchian_breakout": true,
-        "trend_bullish": true,
+        "trend_bullish": false,
         "adl_accumulating": true,
         "obv_rising": true,
         "htf_confirmed": true,
         "golden_cross_bullish": true,
         "death_cross_active": false,
         "bullish_divergence": false,
-        "bearish_divergence": false,
+        "bearish_divergence": true,
         "rs_leading": true,
         "early_move": true
       }
