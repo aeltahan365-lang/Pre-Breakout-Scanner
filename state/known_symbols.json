@@ -847,10 +847,8 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-25T23:53:40.158893+00:00",
-  "alert_history": {
-    "WBTC/USDT": "2026-08-25T22:27:03.451934+00:00"
-  },
+  "last_run": "2026-08-26T01:11:07.404890+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 148,
     "losses": 215,
