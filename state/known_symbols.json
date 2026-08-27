@@ -850,66 +850,12 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-27T11:16:42.879818+00:00",
-  "alert_history": {
-    "ZBT/USDT": "2026-08-27T11:16:39.929003+00:00",
-    "CC/USDT": "2026-08-27T11:16:41.355478+00:00"
-  },
+  "last_run": "2026-08-27T21:07:15.568250+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 151,
-    "losses": 225,
+    "losses": 227,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "ZBT/USDT",
-      "alert_time": "2026-08-27T11:16:39.929024+00:00",
-      "score": 68,
-      "entry": 0.07955,
-      "sl": 0.07897001,
-      "tp1": 0.08032331999999999,
-      "tp2": 0.08090330999999999,
-      "components": {
-        "rsi_healthy": true,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": false,
-        "trend_bullish": false,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": true,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": true,
-        "bearish_divergence": false,
-        "rs_leading": false,
-        "early_move": false
-      }
-    },
-    {
-      "symbol": "CC/USDT",
-      "alert_time": "2026-08-27T11:16:41.355508+00:00",
-      "score": 66,
-      "entry": 0.11615,
-      "sl": 0.11509676,
-      "tp1": 0.11755432,
-      "tp2": 0.11860756,
-      "components": {
-        "rsi_healthy": true,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": false,
-        "trend_bullish": false,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": false,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": false,
-        "bearish_divergence": false,
-        "rs_leading": false,
-        "early_move": true
-      }
-    }
-  ]
+  "pending_outcomes": []
 }
