@@ -493,11 +493,44 @@ row height 34.
 - [ ] Save with **Start Here** as the active sheet, cursor on `A1`, so it opens on the welcome screen.
 - [ ] `Log Transaction` column **G hidden**; `Dashboard` column **I hidden**.
 - [ ] Test the nav: tap each of the five buttons on all six sheets.
-- [ ] Test the alert: set `SKN-021` Max Stock to `80`, log `OUT 55` → Dashboard shows `⚠️ REORDER NOW` + both buttons.
 - [ ] Tap the WhatsApp button — it should open a chat with the message pre-typed.
-- [ ] Type `INV-1001` in `Invoice Generator!B7` → three lines appear, Grand Total ≈ `$76.00 + tax`.
+- [ ] Check the numbers against §9.1 below — every one is derived from the seed data.
 - [ ] Open the file in the **Excel mobile app** and confirm no horizontal scrolling on Dashboard or Log Transaction.
 - [ ] *(Optional)* `Review → Protect Sheet`, leaving only the yellow ranges unlocked. Leave the password **blank** so buyers can unlock it.
+
+### 9.1 Expected values from the shipped seed data
+
+These are computed independently from the six seed products and fifteen seed transactions.
+If your build disagrees with any of them, the formula in that column is wrong.
+
+**Dashboard rows 9–14**
+
+| SKU | Total IN | Total OUT | Current Stock | Max | 10% threshold | Stock Status |
+|---|---|---|---|---|---|---|
+| `LAV-001` | 100 | 90 | **10** | 120 | 12.0 | ⚠️ REORDER NOW |
+| `CER-014` | 150 | 15 | **135** | 200 | 20.0 | ✅ IN STOCK |
+| `TOT-007` | 120 | 4 | **116** | 150 | 15.0 | ✅ IN STOCK |
+| `JRN-002` | 80 | 1 | **79** | 100 | 10.0 | ✅ IN STOCK |
+| `SKN-021` | 60 | 55 | **5** | 80 | 8.0 | ⚠️ REORDER NOW |
+| `TEA-009` | 70 | 5 | **65** | 90 | 9.0 | ✅ IN STOCK |
+
+`TEA-009` Total OUT of 5 = 2 sold + 3 shrinkage — proof that `SHRINKAGE` decrements stock.
+
+**Dashboard KPI cards (row 7):** `6` SKUs · `410` units · `$1,879.20` stock value · `2` needing reorder.
+Two green WhatsApp buttons and two indigo Email buttons should be visible — on the `LAV-001`
+and `SKN-021` rows only.
+
+**Invoice, `B7` = `INV-1001`:**
+
+| Line | SKU | Description | Qty | Unit Price | Line Total |
+|---|---|---|---|---|---|
+| 1 | `LAV-001` | 🕯️ Lavender Soy Candle 220g | 2 | $18.00 | $36.00 |
+| 2 | `CER-014` | ☕ Ceramic Mug — Sand | 3 | $14.00 | $42.00 |
+| 3 | `JRN-002` | 📓 Linen Journal A5 | 1 | $16.00 | $16.00 |
+
+**Subtotal `$94.00` · Tax @ 10% `$9.40` · GRAND TOTAL `$103.40`**
+
+Lines 4–15 must be blank — that is the `IFERROR(...,"")` wrapper doing its job.
 
 ---
 
