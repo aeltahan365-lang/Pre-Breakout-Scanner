@@ -851,12 +851,40 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-29T13:41:00.751397+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-29T17:27:44.456225+00:00",
+  "alert_history": {
+    "ICP/USDT": "2026-08-29T17:27:42.997204+00:00"
+  },
   "stats": {
     "wins": 152,
     "losses": 230,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "ICP/USDT",
+      "alert_time": "2026-08-29T17:27:42.997221+00:00",
+      "score": 71,
+      "entry": 2.493,
+      "sl": 2.469049605,
+      "tp1": 2.52493386,
+      "tp2": 2.548884255,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": false,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": false,
+        "htf_confirmed": true,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": false
+      }
+    }
+  ]
 }
