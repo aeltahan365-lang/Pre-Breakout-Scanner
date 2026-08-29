@@ -851,12 +851,53 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-29T01:15:15.742767+00:00",
-  "alert_history": {},
+  "last_run": "2026-08-29T07:57:04.293240+00:00",
+  "alert_history": {
+    "AVNT/USDT": "2026-08-29T07:57:01.217746+00:00",
+    "IN/USDT": "2026-08-29T07:57:03.101389+00:00"
+  },
   "stats": {
     "wins": 152,
     "losses": 228,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "AVNT/USDT",
+      "alert_time": "2026-08-29T07:57:01.217763+00:00",
+      "score": 65,
+      "entry": 0.10199,
+      "sl": 0.10112787499999999,
+      "tp1": 0.1031395,
+      "tp2": 0.104001625,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": false,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": true,
+        "rs_leading": true,
+        "early_move": true
+      }
+    },
+    {
+      "symbol": "IN/USDT",
+      "alert_time": "2026-08-29T07:57:03.101406+00:00",
+      "score": null,
+      "entry": 0.03231,
+      "sl": 0.03218868,
+      "tp1": 0.032471759999999995,
+      "tp2": 0.032593079999999996,
+      "components": {
+        "news_catalyst": true
+      }
+    }
+  ]
 }
