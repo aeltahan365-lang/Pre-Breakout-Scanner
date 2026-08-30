@@ -69,7 +69,7 @@ WEIGHT_DONCHIAN          = 6    # channel breakout — intentionally lower: by d
                                  # AFTER price already broke the range, so it's the most lagging
                                  # signal in the suite. Kept as confirmation, not a primary driver.
 WEIGHT_TREND_EMA         = 10   # EMA alignment
-WEIGHT_ADL_CHAIKIN       = 10   # accumulation/distribution
+WEIGHT_ADL_CHAIKIN       = 11   # accumulation/distribution
 WEIGHT_LIN_REGRESSION    = 5    # slope + position
 WEIGHT_OBV               = 5    # OBV rising with price
 
@@ -85,7 +85,7 @@ GOLDEN_CROSS_PENALTY         = 10    # 1h is in a death-cross regime — you'd b
 
 USE_DIVERGENCE_DETECTION     = True
 DIVERGENCE_LOOKBACK          = 40    # bars (15m) scanned for swing highs/lows
-WEIGHT_BULLISH_DIVERGENCE    = 8     # price low fading while RSI/MACD momentum rises — real accumulation
+WEIGHT_BULLISH_DIVERGENCE    = 7   # price low fading while RSI/MACD momentum rises — real accumulation
 BEARISH_DIVERGENCE_PENALTY   = 12    # price still rising but momentum fading — the classic "buying the top" trap
 
 USE_RELATIVE_STRENGTH        = True
