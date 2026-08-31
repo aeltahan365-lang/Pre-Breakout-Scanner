@@ -851,39 +851,39 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-08-31T17:42:10.760675+00:00",
+  "last_run": "2026-08-31T22:07:24.943783+00:00",
   "alert_history": {
-    "TIA/USDT": "2026-08-31T17:42:09.410709+00:00"
+    "PAXG/USDT": "2026-08-31T22:07:23.564632+00:00"
   },
   "stats": {
-    "wins": 153,
+    "wins": 154,
     "losses": 233,
     "expired": 0
   },
   "pending_outcomes": [
     {
-      "symbol": "TIA/USDT",
-      "alert_time": "2026-08-31T17:42:09.410723+00:00",
-      "score": 82,
-      "entry": 0.3284,
-      "sl": 0.325974305,
-      "tp1": 0.33163426,
-      "tp2": 0.334059955,
+      "symbol": "PAXG/USDT",
+      "alert_time": "2026-08-31T22:07:23.564651+00:00",
+      "score": 80,
+      "entry": 4453.76,
+      "sl": 4447.127447705,
+      "tp1": 4462.60340306,
+      "tp2": 4469.235955355,
       "components": {
         "rsi_healthy": true,
         "macd_bullish_cross": false,
-        "bb_squeeze": true,
-        "donchian_breakout": true,
-        "trend_bullish": false,
-        "adl_accumulating": false,
+        "bb_squeeze": false,
+        "donchian_breakout": false,
+        "trend_bullish": true,
+        "adl_accumulating": true,
         "obv_rising": true,
         "htf_confirmed": false,
         "golden_cross_bullish": false,
         "death_cross_active": true,
-        "bullish_divergence": true,
+        "bullish_divergence": false,
         "bearish_divergence": false,
         "rs_leading": true,
-        "early_move": true
+        "early_move": false
       }
     }
   ]
