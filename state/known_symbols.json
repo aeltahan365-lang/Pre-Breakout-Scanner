@@ -820,7 +820,6 @@
     "XPR/USDT",
     "XPRT/USDT",
     "XR/USDT",
-    "XRD/USDT",
     "XRP/USDT",
     "XTER/USDT",
     "XTZ/USDT",
@@ -851,12 +850,40 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-09-01T06:36:10.357303+00:00",
-  "alert_history": {},
+  "last_run": "2026-09-01T12:06:08.433685+00:00",
+  "alert_history": {
+    "USDS/USDT": "2026-09-01T12:06:07.046412+00:00"
+  },
   "stats": {
     "wins": 154,
     "losses": 234,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "USDS/USDT",
+      "alert_time": "2026-09-01T12:06:07.046432+00:00",
+      "score": 81,
+      "entry": 1.002,
+      "sl": 1.001314605,
+      "tp1": 1.00291386,
+      "tp2": 1.003599255,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": true,
+        "bb_squeeze": true,
+        "donchian_breakout": false,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": false
+      }
+    }
+  ]
 }
