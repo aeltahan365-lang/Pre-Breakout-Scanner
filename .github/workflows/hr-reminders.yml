@@ -1,0 +1,57 @@
+name: HR Incident Tracker — Reminder Sweep
+
+# Runs one reminder/escalation sweep against the HR incident database.
+#
+# NOTE: this repo's checkout is fresh on every run, so the default local
+# SQLite database is empty each time and this workflow will be a harmless
+# no-op. To actually chase down overdue cases from here, set the
+# HR_DATABASE_URL secret to a persistent, shared database (e.g. hosted
+# Postgres) — the same one your deployed hr_incident_tracker web app uses.
+# If you're instead running the app as a long-lived server, its built-in
+# scheduler (hr_incident_tracker/scheduler.py) already covers this and you
+# can disable this workflow.
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # hourly
+  workflow_dispatch: {}
+
+concurrency:
+  group: hr-incident-tracker-reminders
+  cancel-in-progress: false
+
+jobs:
+  send-reminders:
+    name: "Send overdue-case reminders"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r hr_incident_tracker/requirements.txt
+
+      - name: Run reminder sweep
+        env:
+          HR_DATABASE_URL: ${{ secrets.HR_DATABASE_URL }}
+          HR_APP_BASE_URL: ${{ secrets.HR_APP_BASE_URL }}
+          HR_SMTP_HOST: ${{ secrets.HR_SMTP_HOST }}
+          HR_SMTP_PORT: ${{ secrets.HR_SMTP_PORT }}
+          HR_SMTP_USERNAME: ${{ secrets.HR_SMTP_USERNAME }}
+          HR_SMTP_PASSWORD: ${{ secrets.HR_SMTP_PASSWORD }}
+          HR_SMTP_FROM: ${{ secrets.HR_SMTP_FROM }}
+          HR_SMTP_USE_TLS: ${{ secrets.HR_SMTP_USE_TLS }}
+          HR_ESCALATION_EMAIL: ${{ secrets.HR_ESCALATION_EMAIL }}
+        run: python -m hr_incident_tracker.send_reminders
