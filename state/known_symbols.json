@@ -851,41 +851,12 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-09-04T00:32:48.548887+00:00",
-  "alert_history": {
-    "UB/USDT": "2026-09-03T22:49:16.327039+00:00",
-    "CAKE/USDT": "2026-09-04T00:32:46.788961+00:00"
-  },
+  "last_run": "2026-09-04T05:01:47.806496+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 158,
-    "losses": 238,
+    "losses": 239,
     "expired": 0
   },
-  "pending_outcomes": [
-    {
-      "symbol": "CAKE/USDT",
-      "alert_time": "2026-09-04T00:32:46.788979+00:00",
-      "score": 68,
-      "entry": 2.062,
-      "sl": 2.04162427,
-      "tp1": 2.08916764,
-      "tp2": 2.10954337,
-      "components": {
-        "rsi_healthy": false,
-        "macd_bullish_cross": false,
-        "bb_squeeze": false,
-        "donchian_breakout": true,
-        "trend_bullish": false,
-        "adl_accumulating": true,
-        "obv_rising": true,
-        "htf_confirmed": false,
-        "golden_cross_bullish": true,
-        "death_cross_active": false,
-        "bullish_divergence": false,
-        "bearish_divergence": false,
-        "rs_leading": true,
-        "early_move": true
-      }
-    }
-  ]
+  "pending_outcomes": []
 }
