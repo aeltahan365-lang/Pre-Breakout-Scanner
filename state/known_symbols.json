@@ -435,6 +435,7 @@
     "MANTRA/USDT",
     "MANYU/USDT",
     "MAPO/USDT",
+    "MARSCOIN/USDT",
     "MASK/USDT",
     "MAT/USDT",
     "MAV/USDT",
@@ -851,7 +852,7 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-09-05T06:09:17.474510+00:00",
+  "last_run": "2026-09-05T10:37:59.208417+00:00",
   "alert_history": {},
   "stats": {
     "wins": 161,
