@@ -851,12 +851,92 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-09-04T23:41:44.559549+00:00",
-  "alert_history": {},
+  "last_run": "2026-09-05T01:31:05.767194+00:00",
+  "alert_history": {
+    "Q/USDT": "2026-09-05T01:31:01.077572+00:00",
+    "LTC/USDT": "2026-09-05T01:31:02.412642+00:00",
+    "STRK/USDT": "2026-09-05T01:31:03.753894+00:00"
+  },
   "stats": {
     "wins": 159,
     "losses": 239,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "Q/USDT",
+      "alert_time": "2026-09-05T01:31:01.077588+00:00",
+      "score": 92,
+      "entry": 0.027619,
+      "sl": 0.02703343,
+      "tp1": 0.02839976,
+      "tp2": 0.02898533,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": true,
+        "bb_squeeze": true,
+        "donchian_breakout": true,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": true,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": false
+      }
+    },
+    {
+      "symbol": "LTC/USDT",
+      "alert_time": "2026-09-05T01:31:02.412659+00:00",
+      "score": 85,
+      "entry": 51.74,
+      "sl": 51.440473955,
+      "tp1": 52.13936806,
+      "tp2": 52.438894105,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": true,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": true,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
+      }
+    },
+    {
+      "symbol": "STRK/USDT",
+      "alert_time": "2026-09-05T01:31:03.753913+00:00",
+      "score": 68,
+      "entry": 0.02678,
+      "sl": 0.026571935,
+      "tp1": 0.027057420000000002,
+      "tp2": 0.027265485000000002,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": true,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
+      }
+    }
+  ]
 }
