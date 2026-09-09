@@ -386,6 +386,7 @@
     "LA/USDT",
     "LAB/USDT",
     "LADYS/USDT",
+    "LAPTOP/USDT",
     "LAT/USDT",
     "LAVA/USDT",
     "LAYER/USDT",
@@ -828,24 +829,24 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-09-09T09:35:29.661512+00:00",
+  "last_run": "2026-09-09T14:00:54.424682+00:00",
   "alert_history": {
-    "MANA/USDT": "2026-09-09T09:35:28.145935+00:00"
+    "S/USDT": "2026-09-09T14:00:53.084479+00:00"
   },
   "stats": {
     "wins": 166,
-    "losses": 254,
+    "losses": 255,
     "expired": 0
   },
   "pending_outcomes": [
     {
-      "symbol": "MANA/USDT",
-      "alert_time": "2026-09-09T09:35:28.145952+00:00",
-      "score": 70,
-      "entry": 0.07634,
-      "sl": 0.07589999,
-      "tp1": 0.07692668000000001,
-      "tp2": 0.07736669,
+      "symbol": "S/USDT",
+      "alert_time": "2026-09-09T14:00:53.084496+00:00",
+      "score": 76,
+      "entry": 0.02999,
+      "sl": 0.02961242,
+      "tp1": 0.03049344,
+      "tp2": 0.03087102,
       "components": {
         "rsi_healthy": true,
         "macd_bullish_cross": false,
@@ -853,13 +854,13 @@
         "donchian_breakout": false,
         "trend_bullish": true,
         "adl_accumulating": true,
-        "obv_rising": false,
-        "htf_confirmed": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
         "golden_cross_bullish": true,
         "death_cross_active": false,
         "bullish_divergence": false,
         "bearish_divergence": false,
-        "rs_leading": false,
+        "rs_leading": true,
         "early_move": false
       }
     }
