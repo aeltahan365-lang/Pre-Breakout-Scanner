@@ -831,12 +831,66 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-09-11T09:59:34.193071+00:00",
-  "alert_history": {},
+  "last_run": "2026-09-11T14:07:40.507726+00:00",
+  "alert_history": {
+    "XTZ/USDT": "2026-09-11T14:07:37.874717+00:00",
+    "MON/USDT": "2026-09-11T14:07:39.172389+00:00"
+  },
   "stats": {
     "wins": 167,
     "losses": 258,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "XTZ/USDT",
+      "alert_time": "2026-09-11T14:07:37.874736+00:00",
+      "score": 83,
+      "entry": 0.2592,
+      "sl": 0.25497798,
+      "tp1": 0.26482936,
+      "tp2": 0.26905138,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": true,
+        "donchian_breakout": true,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": true,
+        "bearish_divergence": false,
+        "rs_leading": false,
+        "early_move": true
+      }
+    },
+    {
+      "symbol": "MON/USDT",
+      "alert_time": "2026-09-11T14:07:39.172403+00:00",
+      "score": 69,
+      "entry": 0.02465,
+      "sl": 0.02425157,
+      "tp1": 0.025181239999999997,
+      "tp2": 0.02557967,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": true,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": false,
+        "death_cross_active": true,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
+      }
+    }
+  ]
 }
