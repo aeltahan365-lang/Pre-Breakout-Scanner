@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}New Incident — HR Incident Tracker{% endblock %}
+{% block content %}
+
+<div class="card" style="max-width: 720px; margin: 0 auto;">
+  <h2 style="margin-top:0;">Log a new incident</h2>
+  <form class="stacked" method="post" action="/incidents/new">
+    <label for="title">Title</label>
+    <input type="text" id="title" name="title" required placeholder="e.g. Register shortage — Store #14">
+
+    <label for="description">Description</label>
+    <textarea id="description" name="description" required placeholder="What happened, who was involved, evidence collected so far..."></textarea>
+
+    <div class="form-row">
+      <div>
+        <label for="category">Category</label>
+        <select id="category" name="category" required>
+          {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="severity">Severity</label>
+        <select id="severity" name="severity" required>
+          {% for s in severities %}<option value="{{ s }}" {% if s == 'medium' %}selected{% endif %}>{{ s | capitalize }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <label for="location">Location</label>
+    <input type="text" id="location" name="location" placeholder="Store / site / department">
+
+    <div class="form-row">
+      <div>
+        <label for="reported_by_name">Reported by (name)</label>
+        <input type="text" id="reported_by_name" name="reported_by_name">
+      </div>
+      <div>
+        <label for="reported_by_email">Reported by (email)</label>
+        <input type="email" id="reported_by_email" name="reported_by_email">
+      </div>
+    </div>
+    <p class="hint">The reporter is CC'd on status-change notifications, not required.</p>
+
+    <div class="form-row">
+      <div>
+        <label for="assigned_to_name">Assign to — name</label>
+        <input type="text" id="assigned_to_name" name="assigned_to_name" required>
+      </div>
+      <div>
+        <label for="assigned_to_email">Assign to — email</label>
+        <input type="email" id="assigned_to_email" name="assigned_to_email" required placeholder="assignee@company.com">
+      </div>
+    </div>
+    <p class="hint">They'll get an email immediately with a secure link to update status and action taken — no account needed.</p>
+
+    <label for="due_date">Due date (optional — defaults by severity if left blank)</label>
+    <input type="date" id="due_date" name="due_date">
+
+    <div style="margin-top: 24px; display:flex; gap:10px;">
+      <button class="btn btn-primary" type="submit">Create &amp; notify assignee</button>
+      <a class="btn" href="/">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
