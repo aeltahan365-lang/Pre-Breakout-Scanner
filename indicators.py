@@ -18,6 +18,7 @@ from config import (
     REGRESSION_PERIOD, TREND_FAST_EMA, TREND_SLOW_EMA,
     ADL_EMA_FAST, ADL_EMA_SLOW, VOLUME_LOOKBACK, VOLUME_SPIKE_RATIO,
     MA_FAST_PERIOD, MA_SLOW_PERIOD, DIVERGENCE_LOOKBACK,
+    REVERSAL_PROXIMITY_PCT, REVERSAL_MIN_BASE_BARS, REVERSAL_PRIOR_DECLINE_PCT,
 )
 
 
@@ -320,11 +321,14 @@ def calc_obv(candles: list) -> dict:
 
 def calc_stoch_rsi(candles: list, period: int = STOCH_RSI_PERIOD) -> dict:
     """
-    Returns dict: k (0-100), d (3-bar SMA of k), zone ('oversold'|'neutral'|'overbought')
+    Returns dict:
+      k (0-100), d (3-bar SMA of k), zone ('oversold'|'neutral'|'overbought')
+      turning_up : bool  (K is rising and was recently oversold/low — the
+                          "coming off the bottom" trigger for the reversal detector)
     """
     closes = _closes(candles)
     if len(closes) < period * 2 + 1:
-        return {"k": None, "d": None, "zone": "neutral"}
+        return {"k": None, "d": None, "zone": "neutral", "turning_up": False}
     # Build RSI series
     rsi_series = []
     for i in range(period, len(closes) + 1):
@@ -346,15 +350,23 @@ def calc_stoch_rsi(candles: list, period: int = STOCH_RSI_PERIOD) -> dict:
         rsi_series.append(100 - 100 / (1 + rs))
 
     if len(rsi_series) < period:
-        return {"k": None, "d": None, "zone": "neutral"}
+        return {"k": None, "d": None, "zone": "neutral", "turning_up": False}
 
     window = rsi_series[-period:]
     lo, hi = min(window), max(window)
     k = (rsi_series[-1] - lo) / (hi - lo) * 100 if hi != lo else 50
     d = sum(rsi_series[-3:]) / 3
 
+    k_prev = None
+    turning_up = False
+    if len(rsi_series) > period:
+        prev_window = rsi_series[-period - 1: -1]
+        lo2, hi2 = min(prev_window), max(prev_window)
+        k_prev = (rsi_series[-2] - lo2) / (hi2 - lo2) * 100 if hi2 != lo2 else 50
+        turning_up = k > k_prev and (k_prev < 25 or k < 35)
+
     zone = "oversold" if k < 20 else ("overbought" if k > 80 else "neutral")
-    return {"k": round(k, 2), "d": round(d, 2), "zone": zone}
+    return {"k": round(k, 2), "d": round(d, 2), "zone": zone, "turning_up": turning_up}
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -466,6 +478,124 @@ def calc_donchian(candles: list, period: int = DONCHIAN_PERIOD) -> dict:
         "upper":        round(upper, 8),
         "lower":        round(lower, 8),
         "breakout_pct": round(bk_pct, 3),
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════
+# BOTTOM STRUCTURE (v4 — the "has this coin reached the bottom" gate)
+# ═══════════════════════════════════════════════════════════════════
+# Everything above (volume explosion, Donchian breakout, MACD cross) fires
+# on the way UP, after a move has already started. This is the other half
+# of the picture: is price currently basing near a multi-bar low, after a
+# real prior decline (not just chop)? Run this on a higher timeframe (1h)
+# — a genuine bottom is a multi-day structural event, not something you can
+# read off a single 15m candle.
+
+def calc_bottom_structure(candles: list, lookback: int) -> dict:
+    """
+    Returns dict:
+      lowest_low        : float | None  (lowest low in the lookback window)
+      bars_since_low     : int  | None  (bars since that low printed)
+      pct_from_low        : float | None (current close vs lowest_low, in %)
+      near_low            : bool  (within REVERSAL_PROXIMITY_PCT of the low,
+                                   AND at least REVERSAL_MIN_BASE_BARS have
+                                   passed since it printed — not still falling)
+      higher_low          : bool  (latest swing low sits above the prior
+                                   swing low — classic reversal structure)
+      prior_trend_down    : bool  (price fell at least REVERSAL_PRIOR_DECLINE_PCT%
+                                   from a local high into the low — confirms
+                                   this follows a real decline, not sideways chop)
+    """
+    empty = {"lowest_low": None, "bars_since_low": None, "pct_from_low": None,
+             "near_low": False, "higher_low": False, "prior_trend_down": False,
+             "decline_pct": None}
+    if len(candles) < lookback + 5:
+        return empty
+
+    window = candles[-lookback:]
+    lows = _lows(window)
+    lowest_low = min(lows)
+    low_idx = max(i for i, v in enumerate(lows) if v == lowest_low)   # most recent occurrence
+    bars_since_low = (len(window) - 1) - low_idx
+
+    close = candles[-1]["close"]
+    pct_from_low = ((close - lowest_low) / lowest_low * 100) if lowest_low else 0.0
+
+    near_low = (
+        bars_since_low >= REVERSAL_MIN_BASE_BARS and
+        0 <= pct_from_low <= REVERSAL_PROXIMITY_PCT
+    )
+
+    # Prior decline: the highest high BEFORE the low, vs the low itself.
+    pre_low_segment = window[:low_idx + 1] if low_idx > 0 else window[:1]
+    pre_high = max(c["high"] for c in pre_low_segment)
+    decline_pct = ((pre_high - lowest_low) / pre_high * 100) if pre_high else 0.0
+    prior_trend_down = decline_pct >= REVERSAL_PRIOR_DECLINE_PCT
+
+    # Swing-low structure: is the latest swing low higher than the one before it?
+    swing_idxs = _find_swing_points(lows, window=3, kind="low")
+    higher_low = False
+    if len(swing_idxs) >= 2:
+        i1, i2 = swing_idxs[-2], swing_idxs[-1]
+        higher_low = lows[i2] > lows[i1]
+
+    return {
+        "lowest_low":       round(lowest_low, 10) if lowest_low else None,
+        "bars_since_low":   bars_since_low,
+        "pct_from_low":     round(pct_from_low, 3),
+        "near_low":         near_low,
+        "higher_low":       higher_low,
+        "prior_trend_down": prior_trend_down,
+        "decline_pct":      round(decline_pct, 3),
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════
+# ACCUMULATION SIGNATURE (Wyckoff-style volume dry-up / expansion)
+# ═══════════════════════════════════════════════════════════════════
+
+def calc_accumulation_signature(candles: list, lookback: int) -> dict:
+    """
+    During genuine accumulation at a bottom, volume on down-closing candles
+    should shrink (sellers exhausted) while volume on up-closing candles
+    should expand (buyers stepping in) as the base develops. Splits the
+    lookback window in half and compares first vs second.
+
+    Returns dict: down_vol_first, up_vol_first, down_vol_second, up_vol_second,
+    down_shrinking (bool), up_expanding (bool), accumulating (bool, both true)
+    """
+    empty = {"down_vol_first": 0.0, "up_vol_first": 0.0, "down_vol_second": 0.0,
+             "up_vol_second": 0.0, "down_shrinking": False, "up_expanding": False,
+             "accumulating": False}
+    if len(candles) < lookback:
+        return empty
+
+    window = candles[-lookback:]
+    mid = len(window) // 2
+    first, second = window[:mid], window[mid:]
+
+    def _down_up_avg(seg):
+        down = [c["volume"] for c in seg if c["close"] < c["open"]]
+        up   = [c["volume"] for c in seg if c["close"] >= c["open"]]
+        return (
+            sum(down) / len(down) if down else 0.0,
+            sum(up) / len(up) if up else 0.0,
+        )
+
+    down1, up1 = _down_up_avg(first)
+    down2, up2 = _down_up_avg(second)
+
+    down_shrinking = down1 > 0 and down2 < down1 * 0.85
+    up_expanding   = up1 > 0 and up2 > up1 * 1.15
+
+    return {
+        "down_vol_first":  round(down1, 6),
+        "up_vol_first":    round(up1, 6),
+        "down_vol_second": round(down2, 6),
+        "up_vol_second":   round(up2, 6),
+        "down_shrinking":  down_shrinking,
+        "up_expanding":    up_expanding,
+        "accumulating":    down_shrinking and up_expanding,
     }
 
 
@@ -928,6 +1058,157 @@ def build_score(
     # ── 15. News catalyst ──
     if coin_news and coin_news.get("positive"):
         score  += WEIGHT_POSITIVE_NEWS
+        reasons.append(f"📰 Positive catalyst: {coin_news.get('headline')}")
+
+    score = max(0, min(100, round(score)))
+    return score, reasons
+
+
+# ═══════════════════════════════════════════════════════════════════
+# COMPOSITE SCORER — BOTTOM REVERSAL (v4 PRIMARY pipeline)
+# ═══════════════════════════════════════════════════════════════════
+# Unlike build_score() above (which scores a move that's already underway),
+# this scores a coin that has NOT broken out yet: it's basing near a low
+# after a real decline, and momentum/volume are starting to diverge from
+# price (turning up while price is still flat or making marginal new lows).
+# The point is to catch the setup before the volume-spike pipeline's 3.5x
+# gate would ever trigger.
+
+def build_reversal_score(
+    bottom:        dict,
+    rsi_div:       dict,
+    macd_div:      dict,
+    stoch:         dict,
+    accum:         dict,
+    cmf:           float,
+    adl_chai:      dict,
+    obv:           dict,
+    bb:            dict,
+    will_r:        float,
+    vol_ratio:     float,
+    golden_cross:  dict = None,
+    rel_strength:  dict = None,
+    derivatives:   dict = None,
+    coin_news:     dict = None,
+) -> tuple:
+    """
+    Returns (score: int [0-100], reasons: list[str])
+    """
+    from config import (
+        WEIGHT_R_BOTTOM_STRUCTURE, WEIGHT_R_HIGHER_LOW, WEIGHT_R_DIVERGENCE,
+        WEIGHT_R_ACCUMULATION, WEIGHT_R_CMF, WEIGHT_R_ADL, WEIGHT_R_OBV,
+        WEIGHT_R_MOMENTUM_TURN, WEIGHT_R_BB_SQUEEZE, WEIGHT_R_EARLY_VOLUME,
+        WEIGHT_R_HTF_AGREEMENT, WEIGHT_R_DERIVATIVES, WEIGHT_POSITIVE_NEWS,
+        REVERSAL_MIN_VOL_RATIO,
+    )
+    golden_cross = golden_cross or {}
+    score   = 0
+    reasons = []
+
+    # ── 1. Bottom structure — the "reached the bottom" half of the setup ──
+    score += WEIGHT_R_BOTTOM_STRUCTURE
+    reasons.append(f"🔻 Basing {bottom.get('bars_since_low')} bars past the low "
+                    f"({bottom.get('pct_from_low'):+.2f}% off it) after a confirmed decline")
+    if bottom.get("higher_low"):
+        score += WEIGHT_R_HIGHER_LOW
+        reasons.append("📐 Higher low structure — the downtrend structure has already broken")
+
+    # ── 2. Bullish divergence — the core "diverging to move up" trigger ──
+    if rsi_div.get("bullish") and macd_div.get("bullish"):
+        score += WEIGHT_R_DIVERGENCE
+        reasons.append(f"✅ RSI + MACD bullish divergence — momentum turning up under price ({rsi_div.get('detail')})")
+    elif rsi_div.get("bullish") or macd_div.get("bullish"):
+        score += WEIGHT_R_DIVERGENCE * 0.6
+        detail = rsi_div.get("detail") or macd_div.get("detail")
+        reasons.append(f"✅ Bullish divergence detected — momentum turning up under price ({detail})")
+
+    # ── 3. Accumulation volume signature (Wyckoff) ──
+    if accum.get("accumulating"):
+        score += WEIGHT_R_ACCUMULATION
+        reasons.append("✅ Volume signature: selling drying up, buying volume expanding (accumulation)")
+    elif accum.get("down_shrinking"):
+        score += WEIGHT_R_ACCUMULATION * 0.4
+        reasons.append("📊 Selling volume drying up into the base")
+
+    # ── 4. CMF ──
+    if cmf is not None:
+        if cmf > 0.05:
+            score += WEIGHT_R_CMF
+            reasons.append(f"✅ CMF positive ({cmf}) — money flowing in")
+        elif cmf > 0:
+            score += WEIGHT_R_CMF * 0.5
+            reasons.append(f"📊 CMF turning positive ({cmf})")
+
+    # ── 5. ADL + Chaikin ──
+    sig = adl_chai.get("signal", "")
+    if sig in ("accumulation", "accumulation_accelerating"):
+        score += WEIGHT_R_ADL
+        reasons.append(f"✅ ADL+Chaikin: {sig.replace('_', ' ')}")
+
+    # ── 6. OBV ──
+    if obv.get("obv_trend") == "rising":
+        score += WEIGHT_R_OBV
+        reasons.append("✅ OBV rising while price bases — quiet accumulation")
+
+    # ── 7. Momentum turn (StochRSI / Williams %R) ──
+    if stoch.get("turning_up"):
+        score += WEIGHT_R_MOMENTUM_TURN
+        reasons.append(f"🔄 StochRSI turning up from oversold (K={stoch.get('k')})")
+    elif stoch.get("zone") == "oversold":
+        score += WEIGHT_R_MOMENTUM_TURN * 0.3
+        reasons.append(f"🔄 StochRSI oversold (K={stoch.get('k')}) — watch for the turn")
+
+    if will_r is not None and will_r > -80:
+        score += 3
+        reasons.append(f"↗️ Williams %R leaving oversold ({will_r})")
+
+    # ── 8. BB Squeeze — volatility contraction at the bottom ──
+    if bb.get("squeeze_detected"):
+        score += WEIGHT_R_BB_SQUEEZE
+        reasons.append(f"🔥 BB Squeeze — volatility coiling at the base (bw={bb.get('bandwidth','?')}%)")
+    elif bb.get("bandwidth") is not None and bb["bandwidth"] < 4.0:
+        score += WEIGHT_R_BB_SQUEEZE * 0.5
+        reasons.append(f"⚡ BB bandwidth tight ({bb['bandwidth']}%) — coiling")
+
+    # ── 9. Early volume pickup — sweet spot is MODEST, not a launched breakout ──
+    if REVERSAL_MIN_VOL_RATIO <= vol_ratio <= 2.5:
+        score += WEIGHT_R_EARLY_VOLUME
+        reasons.append(f"📈 Early volume pickup ({vol_ratio}x avg) — first signs of interest, not yet crowded")
+    elif 2.5 < vol_ratio <= 4.0:
+        score += WEIGHT_R_EARLY_VOLUME * 0.5
+        reasons.append(f"📈 Volume picking up ({vol_ratio}x avg)")
+    elif vol_ratio > 4.0:
+        reasons.append(f"⚠️ Volume already {vol_ratio}x avg — move may already be underway, less of an early entry")
+
+    # ── 10. HTF / regime agreement — not fighting the higher timeframe ──
+    if golden_cross.get("event") == "golden_cross":
+        score += WEIGHT_R_HTF_AGREEMENT
+        reasons.append("🌟 1h Golden Cross just formed — regime already turning")
+    elif golden_cross.get("trend") != "bearish":
+        score += WEIGHT_R_HTF_AGREEMENT * 0.5
+        reasons.append("✅ 1h regime not bearish — reversal isn't fighting the higher timeframe")
+
+    # ── 11. Relative strength vs BTC — basing while BTC is weak is a stronger tell ──
+    if rel_strength and rel_strength.get("rs_spread") is not None and rel_strength["leading"]:
+        score += 5
+        reasons.append(f"✅ Outperforming BTC even while basing ({rel_strength['rs_spread']:+.2f}pp)")
+
+    # ── 12. Derivatives positioning — free futures proxy for on-chain/smart-money flow ──
+    if derivatives:
+        fr = derivatives.get("funding_rate")
+        if fr is not None and fr < 0:
+            score += WEIGHT_R_DERIVATIVES
+            reasons.append(f"✅ Negative funding rate ({fr*100:.3f}%/8h) — shorts crowded and paying, squeeze fuel")
+        elif fr is not None and fr < 0.0002:
+            score += WEIGHT_R_DERIVATIVES * 0.4
+            reasons.append(f"📊 Funding rate low ({fr*100:.3f}%/8h) — positioning not overheated")
+        oi_chg = derivatives.get("oi_change_pct")
+        if oi_chg is not None and oi_chg < -5:
+            reasons.append(f"📉 Open interest down {abs(oi_chg):.1f}% into the base — weak hands flushed out")
+
+    # ── 13. News catalyst ──
+    if coin_news and coin_news.get("positive"):
+        score += WEIGHT_POSITIVE_NEWS
         reasons.append(f"📰 Positive catalyst: {coin_news.get('headline')}")
 
     score = max(0, min(100, round(score)))

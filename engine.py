@@ -38,8 +38,11 @@ from indicators import (
     calc_rsi_divergence,
     calc_macd_divergence,
     calc_relative_strength,
+    calc_bottom_structure,
+    calc_accumulation_signature,
     htf_confirmation,
     build_score,
+    build_reversal_score,
 )
 
 # Maps each learnable component -> the config weight it feeds, and whether
@@ -196,6 +199,170 @@ def evaluate_candidate(candles_15m: list, candles_1h: list = None,
         "tp2":           tp2,
         "clv":           clv,
         "htf_confirmed": htf.get("bullish", False),
+        "golden_cross":  golden_cross,
+        "rel_strength":  rel_strength,
+        "components":    components,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════
+# BOTTOM REVERSAL (v4 PRIMARY pipeline) — same isolation principle as
+# evaluate_candidate() above: OHLCV-only + optional pre-fetched extras
+# (btc candles, coin_news, derivatives), no network calls of its own, so
+# live scanning and backtesting share the identical code path.
+#
+# `derivatives` (funding rate / open interest) is live-only — the backtester
+# always passes None for it, same documented limitation as the breakout
+# pipeline's taker buy/sell ratio and order book checks.
+# ═══════════════════════════════════════════════════════════════════
+
+COMPONENT_WEIGHT_MAP_REVERSAL = {
+    "bottom_near_low":      ("WEIGHT_R_BOTTOM_STRUCTURE", +1),
+    "higher_low":           ("WEIGHT_R_HIGHER_LOW",       +1),
+    "bullish_divergence_r": ("WEIGHT_R_DIVERGENCE",       +1),
+    "accumulating":         ("WEIGHT_R_ACCUMULATION",     +1),
+    "cmf_positive":         ("WEIGHT_R_CMF",              +1),
+    "adl_accumulating_r":   ("WEIGHT_R_ADL",               +1),
+    "obv_rising_r":         ("WEIGHT_R_OBV",               +1),
+    "stoch_turning_up":     ("WEIGHT_R_MOMENTUM_TURN",     +1),
+    "bb_squeeze_r":         ("WEIGHT_R_BB_SQUEEZE",        +1),
+    "early_volume":         ("WEIGHT_R_EARLY_VOLUME",      +1),
+    "htf_not_bearish":      ("WEIGHT_R_HTF_AGREEMENT",     +1),
+    "funding_negative":     ("WEIGHT_R_DERIVATIVES",       +1),
+}
+
+
+def _extract_reversal_components(bottom, rsi_div, macd_div, accum, cmf_val, adl_val,
+                                 obv_val, stoch, bb_val, vol_ratio, golden_cross,
+                                 derivatives) -> dict:
+    """Boolean snapshot of every learnable reversal signal, keyed to match
+    COMPONENT_WEIGHT_MAP_REVERSAL."""
+    return {
+        "bottom_near_low":      bool(bottom.get("near_low")),
+        "higher_low":           bool(bottom.get("higher_low")),
+        "bullish_divergence_r": bool(rsi_div.get("bullish") or macd_div.get("bullish")),
+        "accumulating":         bool(accum.get("accumulating")),
+        "cmf_positive":         cmf_val is not None and cmf_val > 0,
+        "adl_accumulating_r":   adl_val.get("signal") in ("accumulation", "accumulation_accelerating"),
+        "obv_rising_r":         obv_val.get("obv_trend") == "rising",
+        "stoch_turning_up":     bool(stoch.get("turning_up")),
+        "bb_squeeze_r":         bool(bb_val.get("squeeze_detected")),
+        "early_volume":         cfg.REVERSAL_MIN_VOL_RATIO <= vol_ratio <= 2.5,
+        "htf_not_bearish":      golden_cross.get("trend") != "bearish",
+        "funding_negative":     bool(derivatives and derivatives.get("funding_rate") is not None
+                                     and derivatives["funding_rate"] < 0),
+    }
+
+
+def evaluate_reversal_candidate(candles_15m: list, candles_1h: list = None,
+                                btc_candles_15m: list = None, coin_news: dict = None,
+                                derivatives: dict = None) -> dict | None:
+    """
+    Pure, side-effect-free scoring pass for the bottom-reversal setup:
+    "has this coin found a bottom and is it diverging (momentum/volume
+    turning up while price is still flat or making marginal new lows)?"
+
+    Requires candles_1h — a real bottom is a multi-day structural event that
+    a 15m-only window can't reliably tell apart from a random dip. Returns
+    None if there isn't enough 1h history, if price isn't currently basing
+    near a confirmed decline's low, or if there's no reversal evidence at
+    all (no divergence, no momentum turn, no accumulation signature) —
+    "near a low" alone is not a signal, it could just keep falling.
+
+    Does NOT apply cfg.REVERSAL_SCORE_THRESHOLD — callers decide (mirrors
+    evaluate_candidate's contract).
+    """
+    if not candles_15m or len(candles_15m) < cfg.REVERSAL_ACCUM_LOOKBACK + 10:
+        return None
+    if not candles_1h or len(candles_1h) < cfg.REVERSAL_LOOKBACK_BARS + 5:
+        return None
+
+    bottom = calc_bottom_structure(candles_1h, lookback=cfg.REVERSAL_LOOKBACK_BARS)
+    if not bottom["near_low"] or not bottom["prior_trend_down"]:
+        return None
+
+    macd_val = calc_macd(candles_15m)
+    rsi_div  = calc_rsi_divergence(candles_15m)
+    macd_div = calc_macd_divergence(candles_15m)
+    stoch    = calc_stoch_rsi(candles_15m)
+    accum    = calc_accumulation_signature(candles_15m, lookback=cfg.REVERSAL_ACCUM_LOOKBACK)
+
+    has_reversal_evidence = (
+        rsi_div.get("bullish") or macd_div.get("bullish") or
+        stoch.get("turning_up") or accum.get("accumulating")
+    )
+    if not has_reversal_evidence:
+        return None
+
+    _, vol_ratio, price_chg_pct = calc_volume_explosion(candles_15m)
+    if vol_ratio < cfg.REVERSAL_MIN_VOL_RATIO:
+        return None
+
+    cmf_val  = calc_cmf(candles_15m)
+    adl_val  = calc_adl_chaikin(candles_15m)
+    obv_val  = calc_obv(candles_15m)
+    bb_val   = calc_bollinger(candles_15m)
+    will_r   = calc_williams_r(candles_15m)
+    atr_val  = calc_atr(candles_15m)
+
+    golden_cross = {"event": "none", "fast_ma": None, "slow_ma": None,
+                    "trend": "unknown", "bars_since_cross": None}
+    if cfg.USE_GOLDEN_CROSS:
+        golden_cross = calc_golden_death_cross(candles_1h)
+
+    rel_strength = None
+    if cfg.USE_RELATIVE_STRENGTH and btc_candles_15m:
+        rel_strength = calc_relative_strength(candles_15m, btc_candles_15m, lookback=cfg.RS_LOOKBACK)
+
+    score, reasons = build_reversal_score(
+        bottom=bottom,
+        rsi_div=rsi_div,
+        macd_div=macd_div,
+        stoch=stoch,
+        accum=accum,
+        cmf=cmf_val,
+        adl_chai=adl_val,
+        obv=obv_val,
+        bb=bb_val,
+        will_r=will_r,
+        vol_ratio=vol_ratio,
+        golden_cross=golden_cross,
+        rel_strength=rel_strength,
+        derivatives=derivatives,
+        coin_news=coin_news,
+    )
+
+    price = candles_15m[-1]["close"]
+    sl = tp1 = tp2 = None
+    if atr_val is not None and bottom["lowest_low"] is not None:
+        # Structural stop just under the base low (if the base breaks, the
+        # reversal thesis is invalidated) vs a tight ATR stop — whichever
+        # is further away (safer / avoids a stop sitting inside normal noise).
+        structural_sl = bottom["lowest_low"] - 0.2 * atr_val
+        atr_sl        = price - 0.8 * atr_val
+        sl = min(structural_sl, atr_sl)
+        if sl < price:
+            risk = price - sl
+            tp1  = price + 1.5 * risk
+            tp2  = price + 3.0 * risk
+        else:
+            sl = None
+
+    components = _extract_reversal_components(bottom, rsi_div, macd_div, accum, cmf_val,
+                                               adl_val, obv_val, stoch, bb_val, vol_ratio,
+                                               golden_cross, derivatives)
+
+    return {
+        "score":         score,
+        "price":         price,
+        "vol_ratio":     vol_ratio,
+        "price_chg_pct": price_chg_pct,
+        "reasons":       reasons,
+        "atr":           atr_val,
+        "sl":            sl,
+        "tp1":           tp1,
+        "tp2":           tp2,
+        "bottom":        bottom,
         "golden_cross":  golden_cross,
         "rel_strength":  rel_strength,
         "components":    components,

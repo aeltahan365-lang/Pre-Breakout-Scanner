@@ -28,7 +28,7 @@ import re
 import sys
 
 import config as cfg
-from engine import load_trade_log, COMPONENT_WEIGHT_MAP
+from engine import load_trade_log, COMPONENT_WEIGHT_MAP, COMPONENT_WEIGHT_MAP_REVERSAL
 
 WIN_OUTCOMES = {"tp1_hit", "tp2_hit"}
 LOSS_OUTCOMES = {"sl_hit"}
@@ -43,14 +43,17 @@ def _win_rate(trades: list) -> tuple:
     return (wins / decided if decided else None), decided, wins, losses
 
 
-def analyze_components(resolved: list) -> list:
+def analyze_components(resolved: list, component_map: dict = COMPONENT_WEIGHT_MAP) -> list:
     """
-    For each component in COMPONENT_WEIGHT_MAP, splits resolved trades into
-    "present" vs "absent" groups and computes the win-rate delta.
+    For each component in `component_map` (COMPONENT_WEIGHT_MAP for the
+    breakout pipeline, COMPONENT_WEIGHT_MAP_REVERSAL for the reversal
+    pipeline — they score different signals, so must be analyzed
+    separately), splits resolved trades into "present" vs "absent" groups
+    and computes the win-rate delta.
     Returns a list of dicts, one per component with enough data to trust.
     """
     findings = []
-    for component, (weight_attr, direction) in COMPONENT_WEIGHT_MAP.items():
+    for component, (weight_attr, direction) in component_map.items():
         with_true  = [t for t in resolved if t.get("components", {}).get(component) is True]
         with_false = [t for t in resolved if t.get("components", {}).get(component) is False]
 
@@ -86,13 +89,14 @@ def analyze_components(resolved: list) -> list:
     return findings
 
 
-def sweep_thresholds(resolved: list) -> list:
+def sweep_thresholds(resolved: list, sweep_values: list = None) -> list:
     # Only trades with a numeric composite score are relevant here — e.g.
     # news-catalyst trades (components={"news_catalyst": True}) don't go
     # through build_score and are logged with score=None.
+    sweep_values = sweep_values if sweep_values is not None else cfg.TUNER_THRESHOLD_SWEEP
     scored = [t for t in resolved if isinstance(t.get("score"), (int, float))]
     rows = []
-    for th in cfg.TUNER_THRESHOLD_SWEEP:
+    for th in sweep_values:
         subset = [t for t in scored if t["score"] >= th]
         wr, n, wins, losses = _win_rate(subset)
         rows.append({"threshold": th, "n": n, "win_rate": round(wr * 100, 1) if wr is not None else None,
@@ -114,25 +118,8 @@ def suggest_threshold(sweep: list, current: int) -> int | None:
     return best["threshold"] if best["threshold"] != current else None
 
 
-def build_report(resolved: list, all_trades: list, component_findings: list,
-                 sweep: list, suggested_threshold) -> str:
-    wr, n, wins, losses = _win_rate(resolved)
-    expired = sum(1 for t in all_trades if t["outcome"] == "expired")
-    live_n = sum(1 for t in all_trades if t.get("source") == "live")
-    bt_n = sum(1 for t in all_trades if t.get("source") == "backtest")
-
-    lines = [
-        "# Self-Tuning Report",
-        "",
-        f"Trade log: {len(all_trades)} total ({live_n} live, {bt_n} backtest) — "
-        f"{n} decided (win/loss), {expired} expired/inconclusive.",
-        f"Overall win rate: **{round(wr*100,1) if wr is not None else 'n/a'}%** ({wins}W / {losses}L)",
-        "",
-        "## Per-Signal Win-Rate Analysis",
-        "",
-        "| Component | Weight | With | Without | Δ (pp) | Suggested |",
-        "|---|---|---|---|---|---|",
-    ]
+def _component_table(component_findings: list) -> list:
+    lines = ["| Component | Weight | With | Without | Δ (pp) | Suggested |", "|---|---|---|---|---|---|"]
     for f in component_findings:
         if not f["trusted"]:
             lines.append(f"| {f['component']} | {f['weight_attr']} | n={f['n_true']} | n={f['n_false']} | "
@@ -141,23 +128,69 @@ def build_report(resolved: list, all_trades: list, component_findings: list,
             sug = f"{f['current_weight']} → **{f['suggested_weight']}**" if f["suggested_weight"] is not None else f"{f['current_weight']} (no change)"
             lines.append(f"| {f['component']} | {f['weight_attr']} | {f['wr_true']}% (n={f['n_true']}) | "
                          f"{f['wr_false']}% (n={f['n_false']}) | {f['delta_pp']:+.1f} | {sug} |")
+    return lines
 
-    lines += ["", "## Score Threshold Sweep", "", "| Threshold | Trades | Win Rate |", "|---|---|---|"]
+
+def _threshold_table(sweep: list, current: int, suggested) -> list:
+    lines = ["| Threshold | Trades | Win Rate |", "|---|---|---|"]
     for r in sweep:
-        marker = " ← current" if r["threshold"] == cfg.SCORE_THRESHOLD else ""
-        marker += " ← suggested" if r["threshold"] == suggested_threshold else ""
+        marker = " ← current" if r["threshold"] == current else ""
+        marker += " ← suggested" if r["threshold"] == suggested else ""
         lines.append(f"| {r['threshold']} | {r['n']} | {r['win_rate']}%{marker} |" if r["win_rate"] is not None
                     else f"| {r['threshold']} | {r['n']} | n/a |")
+    return lines
 
-    if suggested_threshold and suggested_threshold != cfg.SCORE_THRESHOLD:
-        lines += ["", f"**Suggested SCORE_THRESHOLD: {cfg.SCORE_THRESHOLD} → {suggested_threshold}** "
+
+def build_report(all_trades: list, resolved_all: list,
+                 resolved_breakout: list, breakout_findings: list, breakout_sweep: list, breakout_suggested,
+                 resolved_reversal: list, reversal_findings: list, reversal_sweep: list, reversal_suggested) -> str:
+    wr, n, wins, losses = _win_rate(resolved_all)
+    expired = sum(1 for t in all_trades if t["outcome"] == "expired")
+    live_n = sum(1 for t in all_trades if t.get("source") == "live")
+    bt_n = sum(1 for t in all_trades if t.get("source") == "backtest")
+
+    wr_b, n_b, wins_b, losses_b = _win_rate(resolved_breakout)
+    wr_r, n_r, wins_r, losses_r = _win_rate(resolved_reversal)
+
+    lines = [
+        "# Self-Tuning Report",
+        "",
+        f"Trade log: {len(all_trades)} total ({live_n} live, {bt_n} backtest) — "
+        f"{n} decided (win/loss), {expired} expired/inconclusive.",
+        f"Overall win rate: **{round(wr*100,1) if wr is not None else 'n/a'}%** ({wins}W / {losses}L)",
+        f"  - 🚀 Breakout (secondary): {round(wr_b*100,1) if wr_b is not None else 'n/a'}% ({wins_b}W / {losses_b}L)",
+        f"  - 🔄 Reversal (primary): {round(wr_r*100,1) if wr_r is not None else 'n/a'}% ({wins_r}W / {losses_r}L)",
+        "",
+        "## 🚀 Breakout Pipeline — Per-Signal Win-Rate Analysis",
+        "",
+    ] + _component_table(breakout_findings) + [
+        "", "### Breakout Score Threshold Sweep", "",
+    ] + _threshold_table(breakout_sweep, cfg.SCORE_THRESHOLD, breakout_suggested)
+
+    if breakout_suggested and breakout_suggested != cfg.SCORE_THRESHOLD:
+        lines += ["", f"**Suggested SCORE_THRESHOLD: {cfg.SCORE_THRESHOLD} → {breakout_suggested}** "
+                     f"(>=5pp win-rate improvement with sufficient sample size)."]
+
+    lines += [
+        "",
+        "## 🔄 Reversal Pipeline — Per-Signal Win-Rate Analysis",
+        "",
+    ] + _component_table(reversal_findings) + [
+        "", "### Reversal Score Threshold Sweep", "",
+    ] + _threshold_table(reversal_sweep, cfg.REVERSAL_SCORE_THRESHOLD, reversal_suggested)
+
+    if reversal_suggested and reversal_suggested != cfg.REVERSAL_SCORE_THRESHOLD:
+        lines += ["", f"**Suggested REVERSAL_SCORE_THRESHOLD: {cfg.REVERSAL_SCORE_THRESHOLD} → {reversal_suggested}** "
                      f"(>=5pp win-rate improvement with sufficient sample size)."]
 
     lines += [
         "",
         "_Note: backtest trades don't replay the live-only microstructure gates "
-        "(taker buy/sell ratio, order book, cross-exchange validation), so this "
-        "is directionally useful, not an exact simulation of live alerts._",
+        "(taker buy/sell ratio, order book, cross-exchange validation, derivatives "
+        "positioning), so this is directionally useful, not an exact simulation of "
+        "live alerts. News-catalyst trades are excluded from both pipelines' "
+        "component tables (they don't go through build_score / build_reversal_score) "
+        "but are counted in the overall total above._",
     ]
     return "\n".join(lines)
 
@@ -175,20 +208,26 @@ def _set_config_value(content: str, attr: str, new_value) -> str:
     return new_content if count else content
 
 
-def apply_changes(component_findings: list, suggested_threshold, config_path: str = "config.py") -> list:
+def apply_changes(breakout_findings: list, breakout_suggested,
+                  reversal_findings: list, reversal_suggested,
+                  config_path: str = "config.py") -> list:
     """Writes suggested weight/threshold changes into config.py's text. Returns list of applied changes."""
     with open(config_path, "r", encoding="utf-8") as f:
         content = f.read()
 
     applied = []
-    for f in component_findings:
+    for f in breakout_findings + reversal_findings:
         if f.get("trusted") and f.get("suggested_weight") is not None:
             content = _set_config_value(content, f["weight_attr"], f["suggested_weight"])
             applied.append(f"{f['weight_attr']}: {f['current_weight']} -> {f['suggested_weight']}")
 
-    if suggested_threshold and suggested_threshold != cfg.SCORE_THRESHOLD:
-        content = _set_config_value(content, "SCORE_THRESHOLD", suggested_threshold)
-        applied.append(f"SCORE_THRESHOLD: {cfg.SCORE_THRESHOLD} -> {suggested_threshold}")
+    if breakout_suggested and breakout_suggested != cfg.SCORE_THRESHOLD:
+        content = _set_config_value(content, "SCORE_THRESHOLD", breakout_suggested)
+        applied.append(f"SCORE_THRESHOLD: {cfg.SCORE_THRESHOLD} -> {breakout_suggested}")
+
+    if reversal_suggested and reversal_suggested != cfg.REVERSAL_SCORE_THRESHOLD:
+        content = _set_config_value(content, "REVERSAL_SCORE_THRESHOLD", reversal_suggested)
+        applied.append(f"REVERSAL_SCORE_THRESHOLD: {cfg.REVERSAL_SCORE_THRESHOLD} -> {reversal_suggested}")
 
     if applied:
         with open(config_path, "w", encoding="utf-8") as f:
@@ -200,17 +239,32 @@ def main():
     apply_mode = "--apply" in sys.argv
 
     all_trades = load_trade_log()
-    resolved = [t for t in all_trades if t.get("outcome") in WIN_OUTCOMES | LOSS_OUTCOMES]
+    resolved_all = [t for t in all_trades if t.get("outcome") in WIN_OUTCOMES | LOSS_OUTCOMES]
 
-    if len(resolved) < cfg.TUNER_MIN_SAMPLE_SIZE:
-        print(f"Only {len(resolved)} decided trades in the log (need {cfg.TUNER_MIN_SAMPLE_SIZE}+ for any "
+    if len(resolved_all) < cfg.TUNER_MIN_SAMPLE_SIZE:
+        print(f"Only {len(resolved_all)} decided trades in the log (need {cfg.TUNER_MIN_SAMPLE_SIZE}+ for any "
               f"trustworthy analysis) — run backtest.py first, or wait for more live results. No changes made.")
         return
 
-    component_findings = analyze_components(resolved)
-    sweep = sweep_thresholds(resolved)
-    suggested_threshold = suggest_threshold(sweep, cfg.SCORE_THRESHOLD)
-    report = build_report(resolved, all_trades, component_findings, sweep, suggested_threshold)
+    # Old trade-log entries predate the reversal pipeline and carry no
+    # "pipeline" field — treat those as "breakout" (the only pipeline that
+    # existed then). News-catalyst trades are excluded from both component
+    # analyses (different scoring path entirely) but stay in resolved_all
+    # for the overall win-rate stat.
+    resolved_breakout = [t for t in resolved_all if t.get("pipeline", "breakout") == "breakout"]
+    resolved_reversal = [t for t in resolved_all if t.get("pipeline") == "reversal"]
+
+    breakout_findings = analyze_components(resolved_breakout, COMPONENT_WEIGHT_MAP)
+    breakout_sweep = sweep_thresholds(resolved_breakout)
+    breakout_suggested = suggest_threshold(breakout_sweep, cfg.SCORE_THRESHOLD)
+
+    reversal_findings = analyze_components(resolved_reversal, COMPONENT_WEIGHT_MAP_REVERSAL)
+    reversal_sweep = sweep_thresholds(resolved_reversal)
+    reversal_suggested = suggest_threshold(reversal_sweep, cfg.REVERSAL_SCORE_THRESHOLD)
+
+    report = build_report(all_trades, resolved_all,
+                          resolved_breakout, breakout_findings, breakout_sweep, breakout_suggested,
+                          resolved_reversal, reversal_findings, reversal_sweep, reversal_suggested)
 
     print(report)
 
@@ -220,7 +274,7 @@ def main():
         f.write(report)
 
     if apply_mode:
-        applied = apply_changes(component_findings, suggested_threshold)
+        applied = apply_changes(breakout_findings, breakout_suggested, reversal_findings, reversal_suggested)
         if applied:
             print("\n--- Applied changes ---")
             for a in applied:

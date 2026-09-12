@@ -116,8 +116,61 @@ NEWS_CATALYST_MAX_AGE_HOURS    = 6     # only act on genuinely fresh headlines
 NEWS_CATALYST_MIN_VOL_RATIO    = 1.5   # much lower bar than VOLUME_SPIKE_RATIO (3.5) — news is the trigger, not volume
 MAX_NEWS_CATALYST_ALERTS_PER_RUN = 5
 
+# ── Bottom Reversal Detector (v4 — PRIMARY pipeline) ─────────────────
+# The v3 pipeline above requires a volume spike that has ALREADY happened —
+# by definition that's a lagging, post-the-fact confirmation. Most real
+# moves start from a coin finding a bottom (a base after a decline) and
+# showing bullish divergence (price stops making new lows while momentum
+# / volume start turning up) — that's visible BEFORE the big volume candle
+# prints. This block detects that setup on its own; the v3 volume-spike
+# pipeline below is kept as a SECONDARY "confirmed breakout" pathway for
+# moves that are already launched, not the primary trigger anymore.
+REVERSAL_STRUCTURE_TIMEFRAME = TIMEFRAME_CONFIRM   # "1h" — a real bottom is a multi-day structural
+                                                    # event, not something visible on a single 15m bar
+REVERSAL_LOOKBACK_BARS   = 80     # ~3.3 days of 1h bars — window scanned for the base / lowest low
+REVERSAL_MIN_BASE_BARS   = 3      # bars since the exact low before we'll call it "basing" — avoids
+                                   # calling bottom on the falling knife itself, mid-crash
+REVERSAL_PROXIMITY_PCT   = 8.0    # price must be within this % of the lookback low to count as "near the bottom"
+REVERSAL_PRIOR_DECLINE_PCT = 8.0  # min decline into the low (local high -> low, within the lookback
+                                   # window) required to confirm this followed a real downtrend, not chop
+REVERSAL_MIN_VOL_RATIO   = 1.2    # only need a MODEST volume pickup to trigger (vs 3.5x for the
+                                   # breakout pipeline) — catching it early means volume hasn't
+                                   # exploded yet, just started picking up off the base
+REVERSAL_ACCUM_LOOKBACK  = 24     # 15m bars scanned for the Wyckoff volume dry-up/expansion signature
+
+WEIGHT_R_BOTTOM_STRUCTURE = 20   # price is basing near the lookback low after a confirmed decline
+WEIGHT_R_HIGHER_LOW       = 10   # latest swing low sits above the prior one — structure already turning
+WEIGHT_R_DIVERGENCE       = 25   # RSI/MACD bullish divergence — the core "diverging to move up" trigger
+WEIGHT_R_ACCUMULATION     = 15   # Wyckoff volume signature: selling drying up, buying expanding
+WEIGHT_R_CMF              = 8    # Chaikin Money Flow turning/staying positive
+WEIGHT_R_ADL              = 8    # ADL+Chaikin accumulation signal
+WEIGHT_R_OBV              = 7    # OBV rising while price is still basing (quiet accumulation)
+WEIGHT_R_MOMENTUM_TURN    = 10   # StochRSI turning up out of oversold
+WEIGHT_R_BB_SQUEEZE       = 8    # volatility contracting at the base (coiling before the move)
+WEIGHT_R_EARLY_VOLUME     = 7    # modest volume pickup (sweet spot), not a fully launched breakout
+WEIGHT_R_HTF_AGREEMENT    = 5    # 1h regime isn't fighting the reversal (or a fresh golden cross)
+WEIGHT_R_DERIVATIVES      = 10   # free futures proxy for on-chain/smart-money positioning (see below)
+
+REVERSAL_SCORE_THRESHOLD    = 60   # minimum score to send a reversal alert (0-100)
+REVERSAL_MAX_ALERTS_PER_RUN = 10
+
+# ── Derivatives Positioning (free keyless proxy for on-chain / "smart
+#    money" flow) ──────────────────────────────────────────────────────
+# True per-altcoin on-chain data (exchange netflows, whale wallets, active
+# addresses) needs a paid provider (Glassnode/CryptoQuant/Nansen/Santiment)
+# — none of those keys exist in this repo. Perpetual futures funding rate
+# and open interest are the free, keyless stand-in: negative funding means
+# shorts are paying longs (crowded, over-leveraged shorts = squeeze fuel
+# right at a base), which is the same crowd-positioning signal on-chain
+# exchange-flow data is trying to capture, just read through the
+# derivatives market instead of the blockchain. Live-only (like taker
+# buy/sell ratio) — can't be replayed cheaply against history, so it's a
+# bonus in the live scanner only, never a hard gate.
+USE_DERIVATIVES_CONTEXT   = True
+DERIVATIVES_EXCHANGE      = "binanceusdm"   # ccxt USDT-M perpetuals — public endpoints, no API key needed
+
 # ── Scoring Thresholds ───────────────────────────────────────────
-SCORE_THRESHOLD         = 65    # minimum score to send alert (0-100)
+SCORE_THRESHOLD         = 65    # minimum score to send alert (0-100) — SECONDARY "confirmed breakout" pipeline
 HTF_CONFIRM_BONUS       =  5    # added if 1h also looks bullish
 EARLY_MOVE_BONUS        =  5    # added if price change is still early (see EARLY_MOVE_MIN/MAX_PCT)
 EARLY_MOVE_MIN_PCT      = 0.3
@@ -143,6 +196,21 @@ BACKTEST_MAX_HOLD_BARS  = 192   # 48h at 15m bars (matches scanner.OUTCOME_EXPIR
 TUNER_MIN_SAMPLE_SIZE   = 20    # minimum trades WITH and WITHOUT a component before trusting its win-rate delta
 TUNER_MAX_WEIGHT_NUDGE  = 0.20  # cap a single tuning pass to a +/-20% change per weight
 TUNER_THRESHOLD_SWEEP   = [50, 55, 60, 65, 70, 75, 80, 85]
+
+# ── Miss Hunter (weekly evidence-based tuning) ────────────────────
+# Independent of backtest.py's trade-log replay: this actively hunts for
+# real price pumps in the last week's history, checks whether either
+# pipeline would have caught it in time, and for every miss, pinpoints the
+# EXACT gate that blocked it (not just "score too low") — a diagnostic
+# backtest.py's floor-filtered candidate log can't give you, since a
+# hard-gated symbol never even produces a candidate to log in the first place.
+MISS_HUNTER_LOOKBACK_DAYS     = 7      # "last week" — matches this analysis's weekly cadence
+MISS_HUNTER_PUMP_WINDOW_BARS  = 16     # 4h on 15m — a pump is a low->high move within this window
+MISS_HUNTER_PUMP_MIN_PCT      = 15.0   # minimum low->high % move within the window to count as "a pump"
+MISS_HUNTER_CHECK_BARS_BEFORE = 8      # how far before the pump start to check for an alert (2h)
+MISS_HUNTER_CHECK_BARS_INTO   = 4      # how far into the pump's start still counts as "caught early enough" (1h)
+MISS_HUNTER_MIN_SAMPLE_SIZE   = 10     # minimum misses supporting a pattern before suggesting a config nudge
+MISS_HUNTER_MAX_NUDGE_PCT     = 0.15   # cap any single suggested gate/threshold nudge to +/-15% of its current value
 
 # ── Telegram ─────────────────────────────────────────────────────
 import os
