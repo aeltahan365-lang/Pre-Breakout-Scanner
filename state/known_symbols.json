@@ -831,8 +831,10 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-09-13T19:52:53.008208+00:00",
-  "alert_history": {},
+  "last_run": "2026-09-13T22:10:13.377808+00:00",
+  "alert_history": {
+    "KCS/USDT": "2026-09-13T22:10:11.984872+00:00"
+  },
   "stats": {
     "wins": 169,
     "losses": 264,
@@ -862,6 +864,31 @@
         "bearish_divergence": false,
         "rs_leading": true,
         "early_move": true
+      }
+    },
+    {
+      "symbol": "KCS/USDT",
+      "alert_time": "2026-09-13T22:10:11.984890+00:00",
+      "score": 72,
+      "entry": 6.857,
+      "sl": 6.84225755,
+      "tp1": 6.8766566000000005,
+      "tp2": 6.89139905,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": false,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": false,
+        "death_cross_active": true,
+        "bullish_divergence": true,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": false
       }
     }
   ]
