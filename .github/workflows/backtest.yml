@@ -60,6 +60,27 @@ jobs:
       - name: Run self-tuning analysis
         run: python tuner.py --apply
 
+      - name: Run miss hunter
+        run: python miss_hunter.py --apply 2>&1 | tee miss_hunter_output.log
+
+      - name: Upload miss hunter log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: miss-hunter-log-${{ github.run_number }}
+          path: miss_hunter_output.log
+          retention-days: 14
+
+      - name: Combine reports for PR body
+        run: |
+          {
+            cat state/tuning_report.md 2>/dev/null
+            echo ""
+            echo "---"
+            echo ""
+            cat state/miss_report.md 2>/dev/null
+          } > state/combined_report.md
+
       - name: Open or update auto-tune PR
         env:
           GH_TOKEN: ${{ github.token }}
@@ -74,16 +95,16 @@ jobs:
 
           BRANCH="auto-tune-suggestions"
           git checkout -B "$BRANCH"
-          git add config.py state/tuning_report.md
-          git commit -m "chore: weekly self-tuning suggestions from backtest results"
+          git add config.py state/tuning_report.md state/miss_report.md
+          git commit -m "chore: weekly self-tuning + miss-hunter suggestions from backtest results"
           git push -f origin "$BRANCH"
 
           if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
-            gh pr edit "$BRANCH" --body-file state/tuning_report.md
+            gh pr edit "$BRANCH" --body-file state/combined_report.md
             echo "Updated existing auto-tune PR."
           else
             gh pr create --base main --head "$BRANCH" \
-              --title "Weekly self-tuning: adjust weights based on backtest results" \
-              --body-file state/tuning_report.md
+              --title "Weekly self-tuning: adjust weights + gates based on backtest & miss-hunter results" \
+              --body-file state/combined_report.md
             echo "Opened new auto-tune PR."
           fi
