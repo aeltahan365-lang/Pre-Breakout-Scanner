@@ -676,6 +676,7 @@
     "SYN/USDT",
     "SYRUP/USDT",
     "T/USDT",
+    "TA/USDT",
     "TAC/USDT",
     "TAG/USDT",
     "TAI/USDT",
@@ -831,7 +832,7 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-09-16T06:05:52.171509+00:00",
+  "last_run": "2026-09-16T11:36:37.476758+00:00",
   "alert_history": {},
   "stats": {
     "wins": 171,
