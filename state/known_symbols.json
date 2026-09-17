@@ -833,12 +833,27 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-09-16T22:14:35.583429+00:00",
-  "alert_history": {},
+  "last_run": "2026-09-17T00:36:32.011898+00:00",
+  "alert_history": {
+    "MAJOR/USDT": "2026-09-17T00:36:31.503765+00:00"
+  },
   "stats": {
     "wins": 171,
     "losses": 268,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "MAJOR/USDT",
+      "alert_time": "2026-09-17T00:36:31.503781+00:00",
+      "score": null,
+      "entry": 0.04011,
+      "sl": 0.03967062,
+      "tp1": 0.04069584,
+      "tp2": 0.04113522,
+      "components": {
+        "news_catalyst": true
+      }
+    }
+  ]
 }
