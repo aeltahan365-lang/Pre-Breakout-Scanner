@@ -833,9 +833,10 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-09-17T00:36:32.011898+00:00",
+  "last_run": "2026-09-17T05:29:30.393091+00:00",
   "alert_history": {
-    "MAJOR/USDT": "2026-09-17T00:36:31.503765+00:00"
+    "XPL/USDT": "2026-09-17T05:29:27.447857+00:00",
+    "KRL/USDT": "2026-09-17T05:29:28.894921+00:00"
   },
   "stats": {
     "wins": 171,
@@ -853,6 +854,56 @@
       "tp2": 0.04113522,
       "components": {
         "news_catalyst": true
+      }
+    },
+    {
+      "symbol": "XPL/USDT",
+      "alert_time": "2026-09-17T05:29:27.447874+00:00",
+      "score": 74,
+      "entry": 0.0835,
+      "sl": 0.08261636500000001,
+      "tp1": 0.08467818,
+      "tp2": 0.085561815,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": true,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": false,
+        "death_cross_active": true,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
+      }
+    },
+    {
+      "symbol": "KRL/USDT",
+      "alert_time": "2026-09-17T05:29:28.894935+00:00",
+      "score": 70,
+      "entry": 0.13337,
+      "sl": 0.133018475,
+      "tp1": 0.13383869999999998,
+      "tp2": 0.134190225,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": true,
+        "bb_squeeze": false,
+        "donchian_breakout": true,
+        "trend_bullish": false,
+        "adl_accumulating": false,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": false,
+        "death_cross_active": true,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
       }
     }
   ]
