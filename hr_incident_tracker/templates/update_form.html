@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ incident.reference }} — Update case</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container narrow">
+  <div class="card">
+    <div class="hint">HR Incident Tracker</div>
+    <h2 style="margin:6px 0 4px;">{{ incident.reference }} — {{ incident.title }}</h2>
+    <div>
+      <span class="badge severity-{{ incident.severity }}">{{ incident.severity }}</span>
+      <span class="badge status-{{ incident.status }}">{{ incident.status | status_label }}</span>
+      {% if incident.is_overdue %}<span class="badge badge-overdue">OVERDUE</span>{% endif %}
+    </div>
+
+    <div class="detail-grid" style="margin-top:20px;">
+      <div><div class="k">Category</div><div class="v">{{ incident.category }}</div></div>
+      <div><div class="k">Location</div><div class="v">{{ incident.location or "N/A" }}</div></div>
+      <div><div class="k">Due date</div><div class="v">{{ incident.due_date.strftime('%Y-%m-%d') }}</div></div>
+      <div><div class="k">Assigned to</div><div class="v">{{ incident.assigned_to_name }}</div></div>
+    </div>
+
+    <div class="k" style="margin-top:16px;">Description</div>
+    <p class="v">{{ incident.description }}</p>
+
+    <hr style="border:none; border-top:1px solid var(--border); margin:20px 0;">
+
+    <h3 style="margin-top:0;">Update this case</h3>
+    <form class="stacked" method="post" action="/update/{{ incident.update_token }}">
+      <label for="status">Status</label>
+      <select id="status" name="status" required>
+        <option value="in_progress" {% if incident.status == 'in_progress' %}selected{% endif %}>In progress</option>
+        <option value="resolved" {% if incident.status == 'resolved' %}selected{% endif %}>Resolved</option>
+        <option value="closed" {% if incident.status == 'closed' %}selected{% endif %}>Closed</option>
+      </select>
+
+      <label for="action_taken">Action taken</label>
+      <textarea id="action_taken" name="action_taken" required placeholder="Describe what you did / found, and any follow-up needed.">{{ incident.action_taken or "" }}</textarea>
+
+      <button class="btn btn-primary" type="submit" style="margin-top:16px;">Submit update</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ incident.reference }} — Update saved</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="center-page">
+  <div class="card" style="max-width:480px; text-align:center;">
+    <h2 style="margin-top:0;">Thanks — update saved</h2>
+    <p>
+      <span class="badge status-{{ incident.status }}">{{ incident.status | status_label }}</span>
+    </p>
+    <p class="hint">{{ incident.reference }} — {{ incident.title }}</p>
+    <p>Your status and action taken have been recorded. You can revisit this same link any time to add further updates.</p>
+    {% if incident.is_open %}
+    <p class="hint">Reminder emails will keep coming to you automatically until this case is Resolved or Closed.</p>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>
