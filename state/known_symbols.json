@@ -79,6 +79,7 @@
     "AVAX/USDT",
     "AVNT/USDT",
     "AWE/USDT",
+    "AXL/USDT",
     "AXS/USDT",
     "AZERO/USDT",
     "AZTEC/USDT",
@@ -130,6 +131,7 @@
     "BRETT/USDT",
     "BREV/USDT",
     "BRISE/USDT",
+    "BSV/USDT",
     "BTC/USDT",
     "BTR/USDT",
     "BTT/USDT",
@@ -281,6 +283,7 @@
     "FUN/USDT",
     "G/USDT",
     "GAIA/USDT",
+    "GALA/USDT",
     "GAS/USDT",
     "GENIUS/USDT",
     "GF/USDT",
@@ -834,30 +837,30 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-09-22T05:18:48.819681+00:00",
+  "last_run": "2026-09-22T10:06:55.067773+00:00",
   "alert_history": {
-    "ARKM/USDT": "2026-09-22T05:18:47.303720+00:00"
+    "EGLD/USDT": "2026-09-22T10:06:53.602318+00:00"
   },
   "stats": {
-    "wins": 181,
+    "wins": 182,
     "losses": 278,
     "expired": 0
   },
   "pending_outcomes": [
     {
-      "symbol": "ARKM/USDT",
-      "alert_time": "2026-09-22T05:18:47.303735+00:00",
-      "score": 78,
-      "entry": 0.1282,
-      "sl": 0.12634621000000001,
-      "tp1": 0.13067172000000002,
-      "tp2": 0.13252551,
+      "symbol": "EGLD/USDT",
+      "alert_time": "2026-09-22T10:06:53.602336+00:00",
+      "score": 85,
+      "entry": 4.44,
+      "sl": 4.3860792150000005,
+      "tp1": 4.51189438,
+      "tp2": 4.565815165,
       "components": {
         "rsi_healthy": true,
         "macd_bullish_cross": false,
         "bb_squeeze": false,
         "donchian_breakout": false,
-        "trend_bullish": false,
+        "trend_bullish": true,
         "adl_accumulating": true,
         "obv_rising": true,
         "htf_confirmed": false,
