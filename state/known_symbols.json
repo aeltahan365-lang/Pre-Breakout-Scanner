@@ -840,12 +840,27 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-09-25T15:21:24.708249+00:00",
-  "alert_history": {},
+  "last_run": "2026-09-25T19:29:58.825521+00:00",
+  "alert_history": {
+    "NFT/USDT": "2026-09-25T19:29:57.929206+00:00"
+  },
   "stats": {
     "wins": 190,
     "losses": 290,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "NFT/USDT",
+      "alert_time": "2026-09-25T19:29:57.929225+00:00",
+      "score": null,
+      "entry": 2.413e-07,
+      "sl": 2.413e-07,
+      "tp1": 2.413e-07,
+      "tp2": 2.413e-07,
+      "components": {
+        "news_catalyst": true
+      }
+    }
+  ]
 }
