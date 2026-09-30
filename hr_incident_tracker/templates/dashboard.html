@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — HR Incident Tracker{% endblock %}
+{% block content %}
+
+<div class="stats-row">
+  <div class="stat-card"><div class="num">{{ total_all }}</div><div class="label">Total cases</div></div>
+  <div class="stat-card"><div class="num">{{ total_open }}</div><div class="label">Open / in progress</div></div>
+  <div class="stat-card overdue"><div class="num">{{ total_overdue }}</div><div class="label">Overdue</div></div>
+  <div class="stat-card escalated"><div class="num">{{ total_escalated }}</div><div class="label">Escalated</div></div>
+</div>
+
+<form class="filters" method="get" action="/">
+  <input type="text" name="q" placeholder="Search title, ref, assignee..." value="{{ filters.q }}">
+  <select name="status">
+    <option value="">All statuses</option>
+    {% for s in statuses %}
+    <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s | status_label }}</option>
+    {% endfor %}
+  </select>
+  <select name="severity">
+    <option value="">All severities</option>
+    {% for s in severities %}
+    <option value="{{ s }}" {% if filters.severity == s %}selected{% endif %}>{{ s | capitalize }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn" type="submit">Filter</button>
+  {% if filters.status or filters.severity or filters.q %}<a class="btn" href="/">Clear</a>{% endif %}
+</form>
+
+<div class="card" style="padding: 0;">
+  {% if incidents %}
+  <table>
+    <thead>
+      <tr>
+        <th>Reference</th>
+        <th>Title</th>
+        <th>Severity</th>
+        <th>Assigned to</th>
+        <th>Status</th>
+        <th>Due</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in incidents %}
+      <tr class="{% if i.is_overdue %}row-overdue{% endif %}" onclick="window.location='/incidents/{{ i.id }}'" style="cursor:pointer;">
+        <td><a href="/incidents/{{ i.id }}">{{ i.reference or ('#' ~ i.id) }}</a></td>
+        <td>{{ i.title }}</td>
+        <td><span class="badge severity-{{ i.severity }}">{{ i.severity }}</span></td>
+        <td>{{ i.assigned_to_name }}<br><span class="hint">{{ i.assigned_to_email }}</span></td>
+        <td>
+          <span class="badge status-{{ i.status }}">{{ i.status | status_label }}</span>
+          {% if i.is_overdue %}<span class="badge badge-overdue">OVERDUE</span>{% endif %}
+          {% if i.escalated %}<span class="badge badge-escalated">ESCALATED</span>{% endif %}
+        </td>
+        <td>{{ i.due_date.strftime('%Y-%m-%d') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <p>No incidents match these filters.</p>
+    <a class="btn btn-primary" href="/incidents/new">+ Log a new incident</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
