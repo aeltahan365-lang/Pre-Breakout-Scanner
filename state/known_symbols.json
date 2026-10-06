@@ -844,12 +844,27 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-10-05T20:52:42.843761+00:00",
-  "alert_history": {},
+  "last_run": "2026-10-06T01:44:55.007234+00:00",
+  "alert_history": {
+    "BANK/USDT": "2026-10-06T01:44:54.537681+00:00"
+  },
   "stats": {
     "wins": 200,
     "losses": 307,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "BANK/USDT",
+      "alert_time": "2026-10-06T01:44:54.537703+00:00",
+      "score": null,
+      "entry": 0.0282,
+      "sl": 0.028052445,
+      "tp1": 0.02839674,
+      "tp2": 0.028544295,
+      "components": {
+        "news_catalyst": true
+      }
+    }
+  ]
 }
