@@ -815,12 +815,40 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-10-09T15:22:52.335965+00:00",
-  "alert_history": {},
+  "last_run": "2026-10-09T20:17:59.609339+00:00",
+  "alert_history": {
+    "VELO/USDT": "2026-10-09T20:17:57.513399+00:00"
+  },
   "stats": {
     "wins": 203,
     "losses": 310,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "VELO/USDT",
+      "alert_time": "2026-10-09T20:17:57.513415+00:00",
+      "score": 70,
+      "entry": 0.005064,
+      "sl": 0.00503268,
+      "tp1": 0.00510576,
+      "tp2": 0.00513708,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": false,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": false,
+        "htf_confirmed": false,
+        "golden_cross_bullish": false,
+        "death_cross_active": true,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": false
+      }
+    }
+  ]
 }
