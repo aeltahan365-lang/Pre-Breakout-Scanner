@@ -4,6 +4,15 @@
 
 ---
 
+> **Also in this repo:** [`hr_incident_tracker/`](hr_incident_tracker/) is a
+> separate, standalone app — an HR / loss-prevention incident tracker with
+> email assignment, a no-login secure update link for the assignee, status
+> tracking, an audit trail, and automatic reminders/escalation for overdue
+> cases. It shares no code with the scanner below. See its own
+> [README](hr_incident_tracker/README.md) for setup.
+
+---
+
 ## What's New in v3 — Institutional-Grade Signals
 
 v2 had a real problem: alerts tended to fire *after* a coin had already pumped and was rolling back over, because the core gate (a volume spike that already happened) and several of the scoring inputs (MACD cross, Donchian breakout) are lagging-by-definition confirmation signals. v3 adds the context a discretionary desk checks before sizing a long, specifically to catch setups earlier and reject setups that are already extended:
