@@ -814,12 +814,40 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-10-11T02:18:26.662710+00:00",
-  "alert_history": {},
+  "last_run": "2026-10-11T09:03:07.712951+00:00",
+  "alert_history": {
+    "JUP/USDT": "2026-10-11T09:03:06.361317+00:00"
+  },
   "stats": {
     "wins": 206,
     "losses": 310,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "JUP/USDT",
+      "alert_time": "2026-10-11T09:03:06.361361+00:00",
+      "score": 76,
+      "entry": 0.362,
+      "sl": 0.360041975,
+      "tp1": 0.3646107,
+      "tp2": 0.366568725,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": true,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
+      }
+    }
+  ]
 }
