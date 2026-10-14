@@ -814,10 +814,8 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-10-14T19:38:25.573628+00:00",
-  "alert_history": {
-    "KYO/USDT": "2026-10-14T19:38:22.925739+00:00"
-  },
+  "last_run": "2026-10-14T22:43:20.211506+00:00",
+  "alert_history": {},
   "stats": {
     "wins": 207,
     "losses": 314,
