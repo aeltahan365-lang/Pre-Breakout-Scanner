@@ -814,12 +814,27 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-10-18T17:52:15.494678+00:00",
-  "alert_history": {},
+  "last_run": "2026-10-18T20:08:39.145829+00:00",
+  "alert_history": {
+    "JST/USDT": "2026-10-18T20:08:38.280574+00:00"
+  },
   "stats": {
     "wins": 213,
     "losses": 322,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "JST/USDT",
+      "alert_time": "2026-10-18T20:08:38.280594+00:00",
+      "score": null,
+      "entry": 0.13543,
+      "sl": 0.135180565,
+      "tp1": 0.13576258,
+      "tp2": 0.13601201499999999,
+      "components": {
+        "news_catalyst": true
+      }
+    }
+  ]
 }
