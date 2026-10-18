@@ -814,26 +814,39 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-10-18T20:08:39.145829+00:00",
+  "last_run": "2026-10-18T22:29:52.456985+00:00",
   "alert_history": {
-    "JST/USDT": "2026-10-18T20:08:38.280574+00:00"
+    "WLD/USDT": "2026-10-18T22:29:50.979649+00:00"
   },
   "stats": {
     "wins": 213,
-    "losses": 322,
+    "losses": 323,
     "expired": 0
   },
   "pending_outcomes": [
     {
-      "symbol": "JST/USDT",
-      "alert_time": "2026-10-18T20:08:38.280594+00:00",
-      "score": null,
-      "entry": 0.13543,
-      "sl": 0.135180565,
-      "tp1": 0.13576258,
-      "tp2": 0.13601201499999999,
+      "symbol": "WLD/USDT",
+      "alert_time": "2026-10-18T22:29:50.979664+00:00",
+      "score": 87,
+      "entry": 0.4793,
+      "sl": 0.47274353,
+      "tp1": 0.48804196,
+      "tp2": 0.49459843,
       "components": {
-        "news_catalyst": true
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": true,
+        "donchian_breakout": true,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": false,
+        "death_cross_active": true,
+        "bullish_divergence": true,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
       }
     }
   ]
