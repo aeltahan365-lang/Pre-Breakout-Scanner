@@ -814,12 +814,66 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-10-21T05:55:01.380982+00:00",
-  "alert_history": {},
+  "last_run": "2026-10-21T11:12:20.534422+00:00",
+  "alert_history": {
+    "WLD/USDT": "2026-10-21T11:12:17.351457+00:00",
+    "KMNO/USDT": "2026-10-21T11:12:18.760802+00:00"
+  },
   "stats": {
     "wins": 217,
     "losses": 327,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "WLD/USDT",
+      "alert_time": "2026-10-21T11:12:17.351474+00:00",
+      "score": 88,
+      "entry": 0.5918,
+      "sl": 0.58509941,
+      "tp1": 0.60073412,
+      "tp2": 0.60743471,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": true,
+        "bb_squeeze": false,
+        "donchian_breakout": true,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": true,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
+      }
+    },
+    {
+      "symbol": "KMNO/USDT",
+      "alert_time": "2026-10-21T11:12:18.760815+00:00",
+      "score": 70,
+      "entry": 0.04089,
+      "sl": 0.0405237,
+      "tp1": 0.0413784,
+      "tp2": 0.0417447,
+      "components": {
+        "rsi_healthy": false,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": true,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": true,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
+      }
+    }
+  ]
 }
