@@ -585,6 +585,7 @@
     "REZ/USDT",
     "RIO/USDT",
     "RION/USDT",
+    "RITUAL/USDT",
     "RIZ/USDT",
     "RLC/USDT",
     "RNBW/USDT",
@@ -815,7 +816,7 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-10-28T08:54:18.532363+00:00",
+  "last_run": "2026-10-28T15:47:56.947633+00:00",
   "alert_history": {},
   "stats": {
     "wins": 220,
