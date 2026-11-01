@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ incident.reference }} — HR Incident Tracker{% endblock %}
+{% block content %}
+
+<a href="/" class="hint">&larr; Back to dashboard</a>
+
+<div class="card" style="margin-top:12px;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+    <div>
+      <h2 style="margin:0 0 4px;">{{ incident.reference }} — {{ incident.title }}</h2>
+      <div>
+        <span class="badge severity-{{ incident.severity }}">{{ incident.severity }}</span>
+        <span class="badge status-{{ incident.status }}">{{ incident.status | status_label }}</span>
+        {% if incident.is_overdue %}<span class="badge badge-overdue">OVERDUE</span>{% endif %}
+        {% if incident.escalated %}<span class="badge badge-escalated">ESCALATED</span>{% endif %}
+      </div>
+    </div>
+    <div>
+      {% if not incident.is_open %}
+      <form method="post" action="/incidents/{{ incident.id }}/reopen" onsubmit="return confirm('Reopen this case?');">
+        <button class="btn btn-danger btn-sm" type="submit">Reopen case</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="detail-grid" style="margin-top:20px;">
+    <div><div class="k">Category</div><div class="v">{{ incident.category }}</div></div>
+    <div><div class="k">Location</div><div class="v">{{ incident.location or "N/A" }}</div></div>
+    <div><div class="k">Reported by</div><div class="v">{{ incident.reported_by_name or "N/A" }} {% if incident.reported_by_email %}&lt;{{ incident.reported_by_email }}&gt;{% endif %}</div></div>
+    <div><div class="k">Created</div><div class="v">{{ incident.created_at.strftime('%Y-%m-%d %H:%M UTC') }}</div></div>
+    <div><div class="k">Assigned to</div><div class="v">{{ incident.assigned_to_name }} &lt;{{ incident.assigned_to_email }}&gt;</div></div>
+    <div><div class="k">Due date</div><div class="v">{{ incident.due_date.strftime('%Y-%m-%d') }}</div></div>
+    <div><div class="k">Reminders sent</div><div class="v">{{ incident.reminder_count }}</div></div>
+    <div><div class="k">Closed at</div><div class="v">{{ incident.closed_at.strftime('%Y-%m-%d %H:%M UTC') if incident.closed_at else "—" }}</div></div>
+  </div>
+
+  <div class="k" style="margin-top:16px;">Description</div>
+  <p class="v">{{ incident.description }}</p>
+
+  <div class="k">Action taken (latest, from assignee)</div>
+  <p class="v">{{ incident.action_taken or "(none recorded yet)" }}</p>
+
+  <div class="k">Assignee update link</div>
+  <div class="link-box">{{ update_link }}</div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Reassign / change due date</h3>
+  <form class="stacked" method="post" action="/incidents/{{ incident.id }}/reassign">
+    <div class="form-row">
+      <div>
+        <label for="assigned_to_name">Name</label>
+        <input type="text" id="assigned_to_name" name="assigned_to_name" value="{{ incident.assigned_to_name }}" required>
+      </div>
+      <div>
+        <label for="assigned_to_email">Email</label>
+        <input type="email" id="assigned_to_email" name="assigned_to_email" value="{{ incident.assigned_to_email }}" required>
+      </div>
+    </div>
+    <label for="due_date">Due date</label>
+    <input type="date" id="due_date" name="due_date" value="{{ incident.due_date.strftime('%Y-%m-%d') }}">
+    <p class="hint">Reassigning sends a fresh assignment email and resets the reminder count. The secure update link stays the same.</p>
+    <button class="btn btn-primary" type="submit" style="margin-top:10px;">Reassign &amp; notify</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Case history</h3>
+  {% if incident.events %}
+  <ul class="timeline">
+    {% for e in incident.events %}
+    <li>
+      <strong>{{ e.event_type | status_label }}</strong>
+      {% if e.old_value or e.new_value %}<span> — {{ e.old_value or "—" }} &rarr; {{ e.new_value or "—" }}</span>{% endif %}
+      <div class="meta">{{ e.created_at.strftime('%Y-%m-%d %H:%M UTC') }} · {{ e.actor or "system" }}</div>
+      {% if e.note %}<div>{{ e.note }}</div>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint">No events yet.</p>
+  {% endif %}
+</div>
+
+{% endblock %}
