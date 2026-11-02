@@ -43,6 +43,7 @@
     "ALPINE/USDT",
     "ALU/USDT",
     "AMP/USDT",
+    "AMZNX/USDT",
     "ANIME/USDT",
     "ANKR/USDT",
     "ANOME/USDT",
@@ -165,6 +166,7 @@
     "CLANKER/USDT",
     "CLO/USDT",
     "CLOUD/USDT",
+    "COINX/USDT",
     "COLS/USDT",
     "COMMON/USDT",
     "COMP/USDT",
@@ -344,6 +346,7 @@
     "IN/USDT",
     "INIT/USDT",
     "INJ/USDT",
+    "INTCX/USDT",
     "INX/USDT",
     "IO/USDT",
     "ION/USDT",
@@ -432,6 +435,7 @@
     "MERL/USDT",
     "MET/USDT",
     "METADAO/USDT",
+    "METAX/USDT",
     "METIS/USDT",
     "MEW/USDT",
     "MEZO/USDT",
@@ -488,6 +492,7 @@
     "NS/USDT",
     "NUM/USDT",
     "NUMI/USDT",
+    "NVDAX/USDT",
     "NXPC/USDT",
     "NXT/USDT",
     "NYM/USDT",
@@ -818,12 +823,27 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-11-02T10:02:33.525622+00:00",
-  "alert_history": {},
+  "last_run": "2026-11-02T20:08:51.722624+00:00",
+  "alert_history": {
+    "A/USDT": "2026-11-02T20:08:51.180539+00:00"
+  },
   "stats": {
     "wins": 222,
     "losses": 343,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "A/USDT",
+      "alert_time": "2026-11-02T20:08:51.180557+00:00",
+      "score": null,
+      "entry": 0.0781,
+      "sl": 0.07777972,
+      "tp1": 0.07852704,
+      "tp2": 0.07884732,
+      "components": {
+        "news_catalyst": true
+      }
+    }
+  ]
 }
