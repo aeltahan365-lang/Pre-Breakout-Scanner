@@ -801,12 +801,40 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-11-05T23:53:06.456694+00:00",
-  "alert_history": {},
+  "last_run": "2026-11-06T05:04:40.034036+00:00",
+  "alert_history": {
+    "PTB/USDT": "2026-11-06T05:04:38.691533+00:00"
+  },
   "stats": {
     "wins": 223,
     "losses": 345,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "PTB/USDT",
+      "alert_time": "2026-11-06T05:04:38.691547+00:00",
+      "score": 76,
+      "entry": 0.000119,
+      "sl": 0.00011250500000000001,
+      "tp1": 0.00012766,
+      "tp2": 0.000134155,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": true,
+        "donchian_breakout": false,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": false,
+        "death_cross_active": true,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": false
+      }
+    }
+  ]
 }
