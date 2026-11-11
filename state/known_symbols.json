@@ -449,6 +449,7 @@
     "MSTRX/USDT",
     "MTL/USDT",
     "MTV/USDT",
+    "MTX/USDT",
     "MUBARAK/USDT",
     "MYRO/USDT",
     "NAKA/USDT",
@@ -803,7 +804,7 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-11-11T09:28:04.926287+00:00",
+  "last_run": "2026-11-11T17:25:22.570776+00:00",
   "alert_history": {},
   "stats": {
     "wins": 224,
