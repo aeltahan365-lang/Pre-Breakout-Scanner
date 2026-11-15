@@ -804,12 +804,40 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-11-14T20:31:59.609003+00:00",
-  "alert_history": {},
+  "last_run": "2026-11-15T00:10:39.643218+00:00",
+  "alert_history": {
+    "ARIA/USDT": "2026-11-15T00:10:38.340665+00:00"
+  },
   "stats": {
     "wins": 226,
     "losses": 347,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "ARIA/USDT",
+      "alert_time": "2026-11-15T00:10:38.340684+00:00",
+      "score": 76,
+      "entry": 0.20764,
+      "sl": 0.20223096999999998,
+      "tp1": 0.21485204,
+      "tp2": 0.22026107,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": true,
+        "donchian_breakout": true,
+        "trend_bullish": false,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": true,
+        "death_cross_active": false,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": false
+      }
+    }
+  ]
 }
