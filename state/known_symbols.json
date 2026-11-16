@@ -803,12 +803,27 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-11-16T11:27:55.991861+00:00",
-  "alert_history": {},
+  "last_run": "2026-11-16T21:14:31.807772+00:00",
+  "alert_history": {
+    "TOKEN/USDT": "2026-11-16T21:14:31.288042+00:00"
+  },
   "stats": {
     "wins": 227,
     "losses": 349,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "TOKEN/USDT",
+      "alert_time": "2026-11-16T21:14:31.288060+00:00",
+      "score": null,
+      "entry": 0.001359,
+      "sl": 0.001352565,
+      "tp1": 0.00136758,
+      "tp2": 0.001374015,
+      "components": {
+        "news_catalyst": true
+      }
+    }
+  ]
 }
