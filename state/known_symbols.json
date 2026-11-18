@@ -7,6 +7,7 @@
     "4STOCK/USDT",
     "9BIT/USDT",
     "A/USDT",
+    "AAPLON/USDT",
     "AAPLX/USDT",
     "AAVE/USDT",
     "ACE/USDT",
@@ -43,6 +44,7 @@
     "ALPINE/USDT",
     "ALU/USDT",
     "AMP/USDT",
+    "AMZNON/USDT",
     "AMZNX/USDT",
     "ANIME/USDT",
     "ANKR/USDT",
@@ -286,6 +288,7 @@
     "GOAT/USDT",
     "GODS/USDT",
     "GOMINING/USDT",
+    "GOOGLON/USDT",
     "GPS/USDT",
     "GRAM/USDT",
     "GRASS/USDT",
@@ -446,6 +449,7 @@
     "MOVE/USDT",
     "MOVR/USDT",
     "MPC/USDT",
+    "MSFTON/USDT",
     "MSTRX/USDT",
     "MTL/USDT",
     "MTV/USDT",
@@ -480,6 +484,7 @@
     "NS/USDT",
     "NUM/USDT",
     "NUMI/USDT",
+    "NVDAON/USDT",
     "NVDAX/USDT",
     "NXPC/USDT",
     "NXT/USDT",
@@ -804,12 +809,40 @@
     "ZRX/USDT",
     "ZTC/USDT"
   ],
-  "last_run": "2026-11-18T03:06:42.510532+00:00",
-  "alert_history": {},
+  "last_run": "2026-11-18T11:44:02.074015+00:00",
+  "alert_history": {
+    "HANA/USDT": "2026-11-18T11:44:00.662110+00:00"
+  },
   "stats": {
     "wins": 230,
     "losses": 351,
     "expired": 0
   },
-  "pending_outcomes": []
+  "pending_outcomes": [
+    {
+      "symbol": "HANA/USDT",
+      "alert_time": "2026-11-18T11:44:00.662127+00:00",
+      "score": 72,
+      "entry": 0.01273,
+      "sl": 0.01260571,
+      "tp1": 0.01289572,
+      "tp2": 0.01302001,
+      "components": {
+        "rsi_healthy": true,
+        "macd_bullish_cross": false,
+        "bb_squeeze": false,
+        "donchian_breakout": false,
+        "trend_bullish": true,
+        "adl_accumulating": true,
+        "obv_rising": true,
+        "htf_confirmed": false,
+        "golden_cross_bullish": false,
+        "death_cross_active": true,
+        "bullish_divergence": false,
+        "bearish_divergence": false,
+        "rs_leading": true,
+        "early_move": true
+      }
+    }
+  ]
 }
